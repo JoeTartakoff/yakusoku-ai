@@ -138,8 +138,20 @@ export default function BookingPage() {
       return
     }
     
-    // ⭐ 가장 빠른 날짜 찾기 (무조건!)
-    const sortedSlots = [...slots].sort((a, b) => a.date.localeCompare(b.date))
+    // 今日の日付を取得 (YYYY-MM-DD形式)
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+    
+    // ⭐ 本日以降の空き枠のみをフィルタリング
+    const futureSlots = slots.filter(slot => slot.date >= todayStr)
+    
+    if (futureSlots.length === 0) {
+      console.log('📅 No slots available from today onwards')
+      return
+    }
+    
+    // ⭐ 本日以降で最も早い日付を探す
+    const sortedSlots = [...futureSlots].sort((a, b) => a.date.localeCompare(b.date))
     const firstAvailableDate = new Date(sortedSlots[0].date)
     
     const dateStr = firstAvailableDate.toLocaleDateString('ja-JP', {
@@ -149,10 +161,10 @@ export default function BookingPage() {
       weekday: 'short'
     })
     
-    console.log(`📅 First available date: ${dateStr}`)
+    console.log(`📅 First available date (from today onwards): ${dateStr}`)
     console.log(`📅 Setting start date to: ${sortedSlots[0].date}`)
     
-    // ⭐ 무조건 가장 빠른 날짜로 설정!
+    // ⭐ 本日以降で最も早い日付に設定
     setStartDate(firstAvailableDate)
   }
 
