@@ -103,6 +103,14 @@ export default function BookingPage() {
   const initRef = useRef(false)
   const guestLoginProcessedRef = useRef(false)
 
+  // ⭐ isLoadingSlotsの状態を監視
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:105',message:'isLoadingSlots state changed',data:{isLoadingSlots},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+    // #endregion
+    console.log('🔄 isLoadingSlots changed:', isLoadingSlots)
+  }, [isLoadingSlots])
+
   const fetchScheduleInfo = async () => {
     try {
       console.log('📋 Fetching schedule info...')
@@ -344,9 +352,11 @@ export default function BookingPage() {
       // #endregion
       
       // ⭐ 最初の1週間分の取得が完了したので、ローディングを解除
+      console.log('🔄 Setting isLoadingSlots to false...')
       setIsLoadingSlots(false)
+      console.log('✅ setIsLoadingSlots(false) called')
       // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:286',message:'setIsLoadingSlots(false) in progressive',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:347',message:'setIsLoadingSlots(false) in progressive',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
       // #endregion
       
       // 空き時間がある最短日付に自動移動（最初の1週間分のデータで）
@@ -960,7 +970,12 @@ export default function BookingPage() {
             </button>
           </div>
 
-          {isLoadingSlots ? (
+          {(() => {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:893',message:'Rendering check isLoadingSlots',data:{isLoadingSlots,displayDatesLength:displayDates.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+            // #endregion
+            return isLoadingSlots;
+          })() ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
               <p className="text-gray-500">カレンダーを確認中...</p>
