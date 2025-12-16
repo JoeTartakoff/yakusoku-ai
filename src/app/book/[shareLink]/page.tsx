@@ -187,8 +187,9 @@ export default function BookingPage() {
       if (response.ok) {
         const result = await response.json()
         
-        if (result.success && result.slots && result.slots.length > 0) {
-          const slotsWithId = result.slots.map((slot: any, index: number) => ({
+        // ⭐ result.successがtrueの場合、スロットが空でも正常なケースとして扱う
+        if (result.success) {
+          const slotsWithId = (result.slots || []).map((slot: any, index: number) => ({
             id: `${slot.date}-${slot.startTime}-${index}`,
             date: slot.date,
             start_time: slot.startTime,
@@ -211,15 +212,23 @@ export default function BookingPage() {
               })
               return merged
             })
+            // ⭐ 期間指定がある場合は、ローディング状態は呼び出し元で管理
+            return slotsWithId
           } else {
             setAvailableSlots(slotsWithId)
             setIsLoadingSlots(false)
             
             // ⭐ 空き時間がある最短日付に自動移動
-            checkAndMoveToFirstAvailableDate(slotsWithId)
+            if (slotsWithId.length > 0) {
+              checkAndMoveToFirstAvailableDate(slotsWithId)
+            }
           }
           
           return slotsWithId
+        } else {
+          // ⭐ result.successがfalseの場合
+          console.error('❌ API returned success: false', result.error)
+          throw new Error(result.error || 'Calendar API failed')
         }
       }
       
@@ -255,42 +264,48 @@ export default function BookingPage() {
 
   // ⭐ 段階的に空き枠を取得する関数
   const fetchCalendarSlotsProgressive = async (scheduleData: Schedule, guestUserId?: string) => {
-    const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
-    
-    // 1週間後の日付を計算
-    const oneWeekLater = new Date(today)
-    oneWeekLater.setDate(today.getDate() + 7)
-    const oneWeekLaterStr = oneWeekLater.toISOString().split('T')[0]
-    
-    // スケジュールの終了日
-    const scheduleEndStr = scheduleData.date_range_end
-    
-    console.log('🚀 Progressive loading: First week (today to 1 week later)')
-    
-    // まず本日から1週間分を取得
-    const firstWeekEnd = oneWeekLaterStr < scheduleEndStr ? oneWeekLaterStr : scheduleEndStr
-    const firstWeekSlots = await fetchCalendarSlots(scheduleData, guestUserId, todayStr, firstWeekEnd)
-    
-    // ⭐ 最初の1週間分の取得が完了したので、ローディングを解除
-    setIsLoadingSlots(false)
-    
-    // 空き時間がある最短日付に自動移動（最初の1週間分のデータで）
-    if (firstWeekSlots && firstWeekSlots.length > 0) {
-      checkAndMoveToFirstAvailableDate(firstWeekSlots)
-    }
-    
-    // 1週間後がスケジュール終了日より前の場合、残りをバックグラウンドで取得
-    if (oneWeekLaterStr < scheduleEndStr) {
-      console.log('🚀 Progressive loading: Remaining period (background)')
-      // バックグラウンドで取得（エラーは無視、ローディング状態は変更しない）
-      fetchCalendarSlots(scheduleData, guestUserId, oneWeekLaterStr, scheduleEndStr)
-        .then(() => {
-          console.log('✅ Remaining slots loaded')
-        })
-        .catch((error) => {
-          console.error('⚠️ Failed to load remaining slots:', error)
-        })
+    try {
+      const today = new Date()
+      const todayStr = today.toISOString().split('T')[0]
+      
+      // 1週間後の日付を計算
+      const oneWeekLater = new Date(today)
+      oneWeekLater.setDate(today.getDate() + 7)
+      const oneWeekLaterStr = oneWeekLater.toISOString().split('T')[0]
+      
+      // スケジュールの終了日
+      const scheduleEndStr = scheduleData.date_range_end
+      
+      console.log('🚀 Progressive loading: First week (today to 1 week later)')
+      
+      // まず本日から1週間分を取得
+      const firstWeekEnd = oneWeekLaterStr < scheduleEndStr ? oneWeekLaterStr : scheduleEndStr
+      const firstWeekSlots = await fetchCalendarSlots(scheduleData, guestUserId, todayStr, firstWeekEnd)
+      
+      // ⭐ 最初の1週間分の取得が完了したので、ローディングを解除
+      setIsLoadingSlots(false)
+      
+      // 空き時間がある最短日付に自動移動（最初の1週間分のデータで）
+      if (firstWeekSlots && firstWeekSlots.length > 0) {
+        checkAndMoveToFirstAvailableDate(firstWeekSlots)
+      }
+      
+      // 1週間後がスケジュール終了日より前の場合、残りをバックグラウンドで取得
+      if (oneWeekLaterStr < scheduleEndStr) {
+        console.log('🚀 Progressive loading: Remaining period (background)')
+        // バックグラウンドで取得（エラーは無視、ローディング状態は変更しない）
+        fetchCalendarSlots(scheduleData, guestUserId, oneWeekLaterStr, scheduleEndStr)
+          .then(() => {
+            console.log('✅ Remaining slots loaded')
+          })
+          .catch((error) => {
+            console.error('⚠️ Failed to load remaining slots:', error)
+          })
+      }
+    } catch (error) {
+      // ⭐ エラーが発生した場合でもローディングを解除
+      console.error('❌ Error in progressive loading:', error)
+      setIsLoadingSlots(false)
     }
   }
 
