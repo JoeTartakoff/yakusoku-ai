@@ -4,8 +4,8 @@ import { randomUUID } from 'crypto'
 import { sendBookingNotifications } from '@/lib/sendgrid'
 
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
 )
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {

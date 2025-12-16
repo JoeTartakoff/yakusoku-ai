@@ -1,6 +1,9 @@
-﻿import sgMail from '@sendgrid/mail'
+import sgMail from '@sendgrid/mail'
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
+// ビルド時にはエラーを発生させない
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+}
 
 interface BookingEmailData {
   scheduleTitle: string
