@@ -170,8 +170,17 @@ export default function BookingPage() {
 
   const fetchCalendarSlots = async (scheduleData: Schedule, guestUserId?: string, dateStart?: string, dateEnd?: string): Promise<AvailabilitySlot[] | null> => {
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:173',message:'fetchCalendarSlots ENTRY',data:{scheduleId:scheduleData.id,guestUserId,dateStart,dateEnd},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       console.log('📅 Fetching calendar slots...', dateStart ? `(range: ${dateStart} to ${dateEnd})` : '(full range)')
-      setIsLoadingSlots(true)
+      // ⭐ 期間指定がない場合のみローディング状態を設定（期間指定がある場合は呼び出し元で管理）
+      if (!dateStart || !dateEnd) {
+        setIsLoadingSlots(true)
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:177',message:'setIsLoadingSlots(true) called (no date range)',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+      }
 
       const response = await fetch('/api/calendar/get-available-slots', {
         method: 'POST',
@@ -183,9 +192,15 @@ export default function BookingPage() {
           dateEnd: dateEnd || null,
         }),
       })
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:186',message:'API response received',data:{ok:response.ok,status:response.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
 
       if (response.ok) {
         const result = await response.json()
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:189',message:'API result parsed',data:{success:result.success,slotsCount:result.slots?.length||0,hasDateRange:!!(dateStart&&dateEnd)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         
         // ⭐ result.successがtrueの場合、スロットが空でも正常なケースとして扱う
         if (result.success) {
@@ -200,6 +215,9 @@ export default function BookingPage() {
           
           // ⭐ 期間指定がある場合は既存のスロットにマージ、なければ置き換え
           if (dateStart && dateEnd) {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:202',message:'Branch: dateStart&&dateEnd=true',data:{slotsCount:slotsWithId.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
             setAvailableSlots(prev => {
               // 既存のスロットから、この期間のものを除外
               const filtered = prev.filter(slot => 
@@ -213,10 +231,19 @@ export default function BookingPage() {
               return merged
             })
             // ⭐ 期間指定がある場合は、ローディング状態は呼び出し元で管理
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:216',message:'Returning without setIsLoadingSlots(false)',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
             return slotsWithId
           } else {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:218',message:'Branch: dateStart&&dateEnd=false',data:{slotsCount:slotsWithId.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+            // #endregion
             setAvailableSlots(slotsWithId)
             setIsLoadingSlots(false)
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:219',message:'setIsLoadingSlots(false) called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+            // #endregion
             
             // ⭐ 空き時間がある最短日付に自動移動
             if (slotsWithId.length > 0) {
@@ -227,13 +254,21 @@ export default function BookingPage() {
           return slotsWithId
         } else {
           // ⭐ result.successがfalseの場合
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:229',message:'result.success=false',data:{error:result.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
           console.error('❌ API returned success: false', result.error)
           throw new Error(result.error || 'Calendar API failed')
         }
       }
-      
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:235',message:'response.ok=false, throwing error',data:{status:response.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       throw new Error('Calendar API failed')
     } catch (apiError) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:236',message:'catch block entered',data:{error:apiError instanceof Error?apiError.message:String(apiError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       console.log('⚠️ Calendar API failed, using static slots:', apiError)
       
       const { data: slotsData, error: slotsError } = await supabase
@@ -244,10 +279,19 @@ export default function BookingPage() {
         .order('start_time', { ascending: true })
 
       if (slotsError) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:246',message:'static slots error',data:{error:slotsError.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         console.error('❌ Failed to load static slots:', slotsError)
         setIsLoadingSlots(false)
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:248',message:'setIsLoadingSlots(false) in error path',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         return null
       } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:250',message:'static slots loaded',data:{count:slotsData?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         console.log('✅ Loaded static slots:', slotsData?.length || 0)
         setAvailableSlots(slotsData || [])
         
@@ -257,6 +301,9 @@ export default function BookingPage() {
         }
         
         setIsLoadingSlots(false)
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:259',message:'setIsLoadingSlots(false) in success path',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         return slotsData || []
       }
     }
@@ -265,6 +312,14 @@ export default function BookingPage() {
   // ⭐ 段階的に空き枠を取得する関数
   const fetchCalendarSlotsProgressive = async (scheduleData: Schedule, guestUserId?: string) => {
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:266',message:'fetchCalendarSlotsProgressive ENTRY',data:{scheduleId:scheduleData.id,guestUserId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
+      // ⭐ 最初にローディング状態を設定
+      setIsLoadingSlots(true)
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:312',message:'setIsLoadingSlots(true) in progressive',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
       const today = new Date()
       const todayStr = today.toISOString().split('T')[0]
       
@@ -280,10 +335,19 @@ export default function BookingPage() {
       
       // まず本日から1週間分を取得
       const firstWeekEnd = oneWeekLaterStr < scheduleEndStr ? oneWeekLaterStr : scheduleEndStr
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:283',message:'BEFORE fetchCalendarSlots call',data:{todayStr,firstWeekEnd},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
       const firstWeekSlots = await fetchCalendarSlots(scheduleData, guestUserId, todayStr, firstWeekEnd)
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:283',message:'AFTER fetchCalendarSlots call',data:{slotsReturned:firstWeekSlots?.length||0,isNull:firstWeekSlots===null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
       
       // ⭐ 最初の1週間分の取得が完了したので、ローディングを解除
       setIsLoadingSlots(false)
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:286',message:'setIsLoadingSlots(false) in progressive',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
       
       // 空き時間がある最短日付に自動移動（最初の1週間分のデータで）
       if (firstWeekSlots && firstWeekSlots.length > 0) {
@@ -304,8 +368,14 @@ export default function BookingPage() {
       }
     } catch (error) {
       // ⭐ エラーが発生した場合でもローディングを解除
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:304',message:'catch in fetchCalendarSlotsProgressive',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
       console.error('❌ Error in progressive loading:', error)
       setIsLoadingSlots(false)
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'book/[shareLink]/page.tsx:306',message:'setIsLoadingSlots(false) in catch',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
     }
   }
 
