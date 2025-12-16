@@ -225,11 +225,12 @@ async function getAvailableSlotsForTeam(
 
 export async function POST(request: Request) {
   try {
-    const { scheduleId, guestUserId } = await request.json()
+    const { scheduleId, guestUserId, dateStart, dateEnd } = await request.json()
 
     console.log('=== GET AVAILABLE SLOTS API START ===')
     console.log('📋 Schedule ID:', scheduleId)
     console.log('👤 Guest User ID:', guestUserId)
+    console.log('📅 Date range override:', dateStart ? `${dateStart} to ${dateEnd}` : 'using schedule range')
     console.log('🌐 Environment:', process.env.VERCEL_ENV || 'local')
 
     console.log('📊 Fetching schedule from database...')
@@ -251,6 +252,10 @@ export async function POST(request: Request) {
     console.log('✅ Schedule found:', schedule.title)
     console.log('Is team schedule:', !!schedule.team_id)
 
+    // ⭐ 期間指定があればそれを使用、なければスケジュールの期間を使用
+    const effectiveDateStart = dateStart || schedule.date_range_start
+    const effectiveDateEnd = dateEnd || schedule.date_range_end
+
     // ⭐ 병렬 처리로 속도 개선!
     console.log('🚀 Starting parallel fetch...')
     const startTime = Date.now()
@@ -259,21 +264,21 @@ export async function POST(request: Request) {
       schedule.team_id 
         ? getAvailableSlotsForTeam(
             schedule.team_id,
-            schedule.date_range_start,
-            schedule.date_range_end,
+            effectiveDateStart,
+            effectiveDateEnd,
             schedule.time_slot_duration
           )
         : getAvailableSlotsForUser(
             schedule.user_id,
-            schedule.date_range_start,
-            schedule.date_range_end,
+            effectiveDateStart,
+            effectiveDateEnd,
             schedule.time_slot_duration
           ),
       guestUserId 
         ? getAvailableSlotsForUser(
             guestUserId,
-            schedule.date_range_start,
-            schedule.date_range_end,
+            effectiveDateStart,
+            effectiveDateEnd,
             schedule.time_slot_duration
           )
         : Promise.resolve(null),

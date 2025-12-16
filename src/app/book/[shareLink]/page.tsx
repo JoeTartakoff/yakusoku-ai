@@ -168,9 +168,9 @@ export default function BookingPage() {
     setStartDate(firstAvailableDate)
   }
 
-  const fetchCalendarSlots = async (scheduleData: Schedule, guestUserId?: string) => {
+  const fetchCalendarSlots = async (scheduleData: Schedule, guestUserId?: string, dateStart?: string, dateEnd?: string): Promise<AvailabilitySlot[] | null> => {
     try {
-      console.log('📅 Fetching calendar slots...')
+      console.log('📅 Fetching calendar slots...', dateStart ? `(range: ${dateStart} to ${dateEnd})` : '(full range)')
       setIsLoadingSlots(true)
 
       const response = await fetch('/api/calendar/get-available-slots', {
@@ -179,6 +179,8 @@ export default function BookingPage() {
         body: JSON.stringify({
           scheduleId: scheduleData.id,
           guestUserId: guestUserId || null,
+          dateStart: dateStart || null,
+          dateEnd: dateEnd || null,
         }),
       })
 
@@ -194,13 +196,30 @@ export default function BookingPage() {
           }))
           
           console.log('✅ Using Calendar API slots:', slotsWithId.length)
-          setAvailableSlots(slotsWithId)
-          setIsLoadingSlots(false)
           
-          // ⭐ 빈 시간이 있는 최단 날짜로 자동 이동
-          checkAndMoveToFirstAvailableDate(slotsWithId)
+          // ⭐ 期間指定がある場合は既存のスロットにマージ、なければ置き換え
+          if (dateStart && dateEnd) {
+            setAvailableSlots(prev => {
+              // 既存のスロットから、この期間のものを除外
+              const filtered = prev.filter(slot => 
+                slot.date < dateStart || slot.date > dateEnd
+              )
+              // 新しいスロットを追加
+              const merged = [...filtered, ...slotsWithId].sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date)
+                return a.start_time.localeCompare(b.start_time)
+              })
+              return merged
+            })
+          } else {
+            setAvailableSlots(slotsWithId)
+            setIsLoadingSlots(false)
+            
+            // ⭐ 空き時間がある最短日付に自動移動
+            checkAndMoveToFirstAvailableDate(slotsWithId)
+          }
           
-          return
+          return slotsWithId
         }
       }
       
@@ -217,17 +236,61 @@ export default function BookingPage() {
 
       if (slotsError) {
         console.error('❌ Failed to load static slots:', slotsError)
+        setIsLoadingSlots(false)
+        return null
       } else {
         console.log('✅ Loaded static slots:', slotsData?.length || 0)
         setAvailableSlots(slotsData || [])
         
-        // ⭐ 정적 슬롯에서도 자동 이동
+        // ⭐ 静的スロットでも自動移動
         if (slotsData && slotsData.length > 0) {
           checkAndMoveToFirstAvailableDate(slotsData)
         }
+        
+        setIsLoadingSlots(false)
+        return slotsData || []
       }
-      
-      setIsLoadingSlots(false)
+    }
+  }
+
+  // ⭐ 段階的に空き枠を取得する関数
+  const fetchCalendarSlotsProgressive = async (scheduleData: Schedule, guestUserId?: string) => {
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+    
+    // 1週間後の日付を計算
+    const oneWeekLater = new Date(today)
+    oneWeekLater.setDate(today.getDate() + 7)
+    const oneWeekLaterStr = oneWeekLater.toISOString().split('T')[0]
+    
+    // スケジュールの終了日
+    const scheduleEndStr = scheduleData.date_range_end
+    
+    console.log('🚀 Progressive loading: First week (today to 1 week later)')
+    
+    // まず本日から1週間分を取得
+    const firstWeekEnd = oneWeekLaterStr < scheduleEndStr ? oneWeekLaterStr : scheduleEndStr
+    const firstWeekSlots = await fetchCalendarSlots(scheduleData, guestUserId, todayStr, firstWeekEnd)
+    
+    // ⭐ 最初の1週間分の取得が完了したので、ローディングを解除
+    setIsLoadingSlots(false)
+    
+    // 空き時間がある最短日付に自動移動（最初の1週間分のデータで）
+    if (firstWeekSlots && firstWeekSlots.length > 0) {
+      checkAndMoveToFirstAvailableDate(firstWeekSlots)
+    }
+    
+    // 1週間後がスケジュール終了日より前の場合、残りをバックグラウンドで取得
+    if (oneWeekLaterStr < scheduleEndStr) {
+      console.log('🚀 Progressive loading: Remaining period (background)')
+      // バックグラウンドで取得（エラーは無視、ローディング状態は変更しない）
+      fetchCalendarSlots(scheduleData, guestUserId, oneWeekLaterStr, scheduleEndStr)
+        .then(() => {
+          console.log('✅ Remaining slots loaded')
+        })
+        .catch((error) => {
+          console.error('⚠️ Failed to load remaining slots:', error)
+        })
     }
   }
 
@@ -298,10 +361,12 @@ export default function BookingPage() {
               }, { onConflict: 'user_id' })
             }
             
-            fetchCalendarSlots(scheduleData, user.id)
+            // ⭐ 段階的取得を使用
+            fetchCalendarSlotsProgressive(scheduleData, user.id)
           } else {
             console.log('👤 No user logged in')
-            fetchCalendarSlots(scheduleData)
+            // ⭐ 段階的取得を使用
+            fetchCalendarSlotsProgressive(scheduleData)
           }
         } catch (error) {
           console.error('❌ Init error:', error)
