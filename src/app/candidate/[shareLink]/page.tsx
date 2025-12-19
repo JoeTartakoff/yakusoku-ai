@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nanoid } from 'nanoid'
@@ -24,6 +24,13 @@ interface TimeBlock {
   date: string
   startTime: string
   endTime: string
+}
+
+interface BlockLayout {
+  block: TimeBlock
+  left: number  // 左からの位置（%）
+  width: number // 幅（%）
+  column: number // レイアウト列のインデックス
 }
 
 function getThreeDayDates(center: Date): Date[] {
@@ -61,6 +68,106 @@ function timeToPixelPosition(time: string): number {
   const baseMinutes = 9 * 60
   const relativeMinutes = minutes - baseMinutes
   return (relativeMinutes / 60) * 96
+}
+
+// 日付全体のブロックレイアウトを計算（列番号を一貫して決定）
+function calculateDateBlockLayouts(blocks: TimeBlock[], date: string): Map<string, BlockLayout> {
+  // 同じ日付のブロックをフィルタリングして時間順にソート
+  const dateBlocks = blocks
+    .filter(block => block.date === date)
+    .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+  
+  if (dateBlocks.length === 0) return new Map()
+  
+  // 各ブロックがどの列に配置されるかを計算
+  const layouts = new Map<string, BlockLayout>()
+  const columns: TimeBlock[][] = []
+  
+  dateBlocks.forEach(block => {
+    const blockStart = timeToMinutes(block.startTime)
+    const blockEnd = timeToMinutes(block.endTime)
+    
+    // 既存の列で、このブロックと時間的に重複しない列を探す
+    let placed = false
+    for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+      const columnBlocks = columns[colIdx]
+      const hasOverlap = columnBlocks.some(existingBlock => {
+        const existingStart = timeToMinutes(existingBlock.startTime)
+        const existingEnd = timeToMinutes(existingBlock.endTime)
+        return blockStart < existingEnd && blockEnd > existingStart
+      })
+      
+      if (!hasOverlap) {
+        columns[colIdx].push(block)
+        layouts.set(block.id, {
+          block,
+          column: colIdx,
+          left: 0,
+          width: 0
+        })
+        placed = true
+        break
+      }
+    }
+    
+    // 重複する列がない場合は新しい列を作成
+    if (!placed) {
+      columns.push([block])
+      layouts.set(block.id, {
+        block,
+        column: columns.length - 1,
+        left: 0,
+        width: 0
+      })
+    }
+  })
+  
+  // 各ブロックの幅と位置を計算
+  const maxColumns = columns.length
+  const blockWidth = 100 / maxColumns
+  
+  layouts.forEach(layout => {
+    layout.width = blockWidth
+    layout.left = layout.column * blockWidth
+  })
+  
+  return layouts
+}
+
+// キャッシュされたレイアウト情報から、指定された時間帯に関連するブロックのレイアウトを取得
+function getBlockLayoutsForHour(
+  dateLayouts: Map<string, BlockLayout>,
+  blocks: TimeBlock[],
+  date: string,
+  hour: number
+): BlockLayout[] {
+  const hourStartMinutes = hour * 60
+  const hourEndMinutes = (hour + 1) * 60
+  
+  // この時間帯と重複するブロックをフィルタリング
+  const relevantBlocks = blocks.filter(block => {
+    if (block.date !== date) return false
+    const blockStart = timeToMinutes(block.startTime)
+    const blockEnd = timeToMinutes(block.endTime)
+    return blockStart < hourEndMinutes && blockEnd > hourStartMinutes
+  })
+  
+  // キャッシュされたレイアウト情報から取得
+  const layouts: BlockLayout[] = []
+  relevantBlocks.forEach(block => {
+    const layout = dateLayouts.get(block.id)
+    if (layout) {
+      layouts.push(layout)
+    }
+  })
+  
+  // 列順、開始時間順にソート
+  return layouts.sort((a, b) => {
+    if (a.column === b.column) {
+      return timeToMinutes(a.block.startTime) - timeToMinutes(b.block.startTime)
+    }
+    return a.column - b.column
+  })
 }
 
 export default function CandidatePage() {
@@ -432,6 +539,16 @@ export default function CandidatePage() {
     isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
   )
 
+  // 日付ごとのブロックレイアウトをキャッシュ
+  const dateLayoutsMap = useMemo(() => {
+    const layoutsMap = new Map<string, Map<string, BlockLayout>>()
+    displayDates.forEach(date => {
+      const dateStr = date.toISOString().split('T')[0]
+      layoutsMap.set(dateStr, calculateDateBlockLayouts(selectedBlocks, dateStr))
+    })
+    return layoutsMap
+  }, [selectedBlocks, displayDates])
+
   const blockHeightPx = schedule ? (schedule.time_slot_duration / 60) * 96 : 96
 
   return (
@@ -593,45 +710,65 @@ export default function CandidatePage() {
                                 )}
                               </div>
                               
-                              {selectedBlocks.map((block, blockIdx) => {
-                                const blockStartHour = Math.floor(timeToMinutes(block.startTime) / 60)
-                                const isBlockStart = block.date === dateStr && blockStartHour === hour
+                              {(() => {
+                                // キャッシュされたレイアウト情報から、この時間帯に関連するブロックのレイアウトを取得
+                                const dateLayouts = dateLayoutsMap.get(dateStr)
+                                if (!dateLayouts || dateLayouts.size === 0) return null
                                 
-                                if (!isBlockStart) return null
+                                const layouts = getBlockLayoutsForHour(dateLayouts, selectedBlocks, dateStr, hour)
                                 
-                                const blockTopPosition = timeToPixelPosition(block.startTime) - (blockStartHour - 9) * 96
-                                const isDraggingThis = draggingBlockIndex === blockIdx
+                                if (layouts.length === 0) return null
+                                
+                                // マージンを考慮した幅と位置を計算
+                                const margin = 2 // ブロック間のマージン（px）
+                                const maxColumns = Math.max(...layouts.map(l => l.column)) + 1
+                                
+                                return layouts.map((layout) => {
+                                  const block = layout.block
+                                  const blockIdx = selectedBlocks.findIndex(b => b.id === block.id)
+                                  const blockStartHour = Math.floor(timeToMinutes(block.startTime) / 60)
+                                  const blockTopPosition = timeToPixelPosition(block.startTime) - (blockStartHour - 9) * 96
+                                  const isDraggingThis = draggingBlockIndex === blockIdx
+                                  
+                                  // 幅と位置を計算（マージンを考慮）
+                                  // 各ブロックの幅: (100% - (列数-1) * マージン) / 列数
+                                  const columnWidthPercent = 100 / maxColumns
+                                  const leftOffset = layout.column * columnWidthPercent
 
-                                return (
-                                  <div
-                                    key={block.id}
-                                    className={`absolute left-1 right-1 bg-purple-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
-                                      isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
-                                    }`}
-                                    style={{
-                                      top: `${blockTopPosition}px`,
-                                      height: `${blockHeightPx}px`
-                                    }}
-                                    onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
-                                  >
-                                    <div className="text-center relative w-full">
-                                      <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
-                                      <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
-                                      
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          removeBlock(blockIdx)
-                                        }}
-                                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center hover:bg-red-600 transition-colors shadow-md z-30"
-                                      >
-                                        ×
-                                      </button>
+                                  return (
+                                    <div
+                                      key={block.id}
+                                      className={`absolute bg-purple-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
+                                        isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
+                                      }`}
+                                      style={{
+                                        top: `${blockTopPosition}px`,
+                                        height: `${blockHeightPx}px`,
+                                        left: `${leftOffset}%`,
+                                        width: `calc(${columnWidthPercent}% - ${margin}px)`,
+                                        marginLeft: layout.column > 0 ? `${margin}px` : '0',
+                                      }}
+                                      onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
+                                    >
+                                      <div className="text-center relative w-full px-1">
+                                        <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
+                                        <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
+                                        
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            removeBlock(blockIdx)
+                                          }}
+                                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center hover:bg-red-600 transition-colors shadow-md z-30"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                )
-                              })}
+                                  )
+                                })
+                              })()}
                             </td>
                           )
                         })}
