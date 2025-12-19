@@ -70,65 +70,129 @@ function timeToPixelPosition(time: string): number {
   return (relativeMinutes / 60) * 96
 }
 
-// 日付全体のブロックレイアウトを計算（列番号を一貫して決定）
+// 日付全体のブロックレイアウトを計算（Calendar Overlap Algorithm実装）
 function calculateDateBlockLayouts(blocks: TimeBlock[], date: string): Map<string, BlockLayout> {
-  // 同じ日付のブロックをフィルタリングして時間順にソート
-  const dateBlocks = blocks
-    .filter(block => block.date === date)
-    .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+  // Step 1: データのソート
+  // 同じ日付のブロックをフィルタリング
+  const dateBlocks = blocks.filter(block => block.date === date)
   
   if (dateBlocks.length === 0) return new Map()
   
-  // 各ブロックがどの列に配置されるかを計算
-  const layouts = new Map<string, BlockLayout>()
-  const columns: TimeBlock[][] = []
+  // 開始時間の昇順でソート、開始時間が同じ場合は終了時間の降順（長いものが先）
+  const sortedBlocks = [...dateBlocks].sort((a, b) => {
+    const aStart = timeToMinutes(a.startTime)
+    const bStart = timeToMinutes(b.startTime)
+    if (aStart !== bStart) {
+      return aStart - bStart
+    }
+    return timeToMinutes(b.endTime) - timeToMinutes(a.endTime)
+  })
   
-  dateBlocks.forEach(block => {
+  // Step 2: 競合グループ（クラスター）の特定
+  const groups: TimeBlock[][] = []
+  const blockToGroup = new Map<TimeBlock, number>()
+  
+  sortedBlocks.forEach(block => {
     const blockStart = timeToMinutes(block.startTime)
     const blockEnd = timeToMinutes(block.endTime)
     
-    // 既存の列で、このブロックと時間的に重複しない列を探す
-    let placed = false
-    for (let colIdx = 0; colIdx < columns.length; colIdx++) {
-      const columnBlocks = columns[colIdx]
-      const hasOverlap = columnBlocks.some(existingBlock => {
+    // 既存のグループで、このブロックと時間的に重複するグループを探す
+    const overlappingGroups = new Set<number>()
+    
+    groups.forEach((group, groupIdx) => {
+      const hasOverlap = group.some(existingBlock => {
         const existingStart = timeToMinutes(existingBlock.startTime)
         const existingEnd = timeToMinutes(existingBlock.endTime)
         return blockStart < existingEnd && blockEnd > existingStart
       })
       
-      if (!hasOverlap) {
-        columns[colIdx].push(block)
-        layouts.set(block.id, {
-          block,
-          column: colIdx,
-          left: 0,
-          width: 0
-        })
-        placed = true
-        break
+      if (hasOverlap) {
+        overlappingGroups.add(groupIdx)
       }
-    }
+    })
     
-    // 重複する列がない場合は新しい列を作成
-    if (!placed) {
-      columns.push([block])
-      layouts.set(block.id, {
-        block,
-        column: columns.length - 1,
-        left: 0,
-        width: 0
-      })
+    // 重複するグループをマージ
+    if (overlappingGroups.size > 0) {
+      const groupIndices = Array.from(overlappingGroups).sort((a, b) => a - b)
+      const targetGroupIdx = groupIndices[0]
+      
+      // 他の重複グループのブロックを統合
+      for (let i = groupIndices.length - 1; i > 0; i--) {
+        const mergeGroupIdx = groupIndices[i]
+        groups[targetGroupIdx].push(...groups[mergeGroupIdx])
+        groups[mergeGroupIdx].forEach(b => blockToGroup.set(b, targetGroupIdx))
+        groups.splice(mergeGroupIdx, 1)
+      }
+      
+      // このブロックをターゲットグループに追加
+      groups[targetGroupIdx].push(block)
+      blockToGroup.set(block, targetGroupIdx)
+    } else {
+      // 新しいグループを作成
+      const newGroupIdx = groups.length
+      groups.push([block])
+      blockToGroup.set(block, newGroupIdx)
     }
   })
   
-  // 各ブロックの幅と位置を計算
-  const maxColumns = columns.length
-  const blockWidth = 100 / maxColumns
+  // Step 3: レーン（列）の割り当て
+  const layouts = new Map<string, BlockLayout>()
   
-  layouts.forEach(layout => {
-    layout.width = blockWidth
-    layout.left = layout.column * blockWidth
+  groups.forEach((group, groupIdx) => {
+    // グループ内のブロックを開始時間順にソート
+    const sortedGroup = [...group].sort((a, b) => 
+      timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+    )
+    
+    // 各ブロックのレーン（列）を割り当て
+    const lanes: TimeBlock[][] = []
+    const blockToLane = new Map<TimeBlock, number>()
+    
+    sortedGroup.forEach(block => {
+      const blockStart = timeToMinutes(block.startTime)
+      const blockEnd = timeToMinutes(block.endTime)
+      
+      // 既存のレーンで、このブロックと時間的に重複しないレーンを探す
+      let placed = false
+      for (let laneIdx = 0; laneIdx < lanes.length; laneIdx++) {
+        const laneBlocks = lanes[laneIdx]
+        const hasOverlap = laneBlocks.some(existingBlock => {
+          const existingStart = timeToMinutes(existingBlock.startTime)
+          const existingEnd = timeToMinutes(existingBlock.endTime)
+          return blockStart < existingEnd && blockEnd > existingStart
+        })
+        
+        if (!hasOverlap) {
+          lanes[laneIdx].push(block)
+          blockToLane.set(block, laneIdx)
+          placed = true
+          break
+        }
+      }
+      
+      // 重複しないレーンがない場合は新しいレーンを作成
+      if (!placed) {
+        const newLaneIdx = lanes.length
+        lanes.push([block])
+        blockToLane.set(block, newLaneIdx)
+      }
+    })
+    
+    // Step 4: 幅と位置の最終決定
+    const maxLanes = lanes.length
+    
+    sortedGroup.forEach(block => {
+      const laneIdx = blockToLane.get(block)!
+      const blockWidth = 100 / maxLanes
+      const leftOffset = (100 / maxLanes) * laneIdx
+      
+      layouts.set(block.id, {
+        block,
+        column: laneIdx,
+        left: leftOffset,
+        width: blockWidth
+      })
+    })
   })
   
   return layouts
@@ -313,7 +377,15 @@ export default function CandidatePage() {
     }
     
     const existingIndex = selectedBlocks.findIndex(
-      b => b.date === date && b.startTime === startTime
+      b => {
+        if (b.date !== date) return false
+        const bStart = timeToMinutes(b.startTime)
+        const bEnd = timeToMinutes(b.endTime)
+        const newStart = timeToMinutes(startTime)
+        const newEnd = timeToMinutes(endTime)
+        // 時間的に重複しているかチェック
+        return newStart < bEnd && newEnd > bStart
+      }
     )
     
     if (existingIndex >= 0) {
@@ -628,7 +700,7 @@ export default function CandidatePage() {
               <p className="text-gray-500">この期間には予約可能な日がありません</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto relative">
               <table className="w-full border-collapse select-none">
                 <thead>
                   <tr>
@@ -709,66 +781,6 @@ export default function CandidatePage() {
                                   </div>
                                 )}
                               </div>
-                              
-                              {(() => {
-                                // キャッシュされたレイアウト情報から、この時間帯に関連するブロックのレイアウトを取得
-                                const dateLayouts = dateLayoutsMap.get(dateStr)
-                                if (!dateLayouts || dateLayouts.size === 0) return null
-                                
-                                const layouts = getBlockLayoutsForHour(dateLayouts, selectedBlocks, dateStr, hour)
-                                
-                                if (layouts.length === 0) return null
-                                
-                                // マージンを考慮した幅と位置を計算
-                                const margin = 2 // ブロック間のマージン（px）
-                                const maxColumns = Math.max(...layouts.map(l => l.column)) + 1
-                                
-                                return layouts.map((layout) => {
-                                  const block = layout.block
-                                  const blockIdx = selectedBlocks.findIndex(b => b.id === block.id)
-                                  const blockStartHour = Math.floor(timeToMinutes(block.startTime) / 60)
-                                  const blockTopPosition = timeToPixelPosition(block.startTime) - (blockStartHour - 9) * 96
-                                  const isDraggingThis = draggingBlockIndex === blockIdx
-                                  
-                                  // 幅と位置を計算（マージンを考慮）
-                                  // 各ブロックの幅: (100% - (列数-1) * マージン) / 列数
-                                  const columnWidthPercent = 100 / maxColumns
-                                  const leftOffset = layout.column * columnWidthPercent
-
-                                  return (
-                                    <div
-                                      key={block.id}
-                                      className={`absolute bg-purple-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
-                                        isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
-                                      }`}
-                                      style={{
-                                        top: `${blockTopPosition}px`,
-                                        height: `${blockHeightPx}px`,
-                                        left: `${leftOffset}%`,
-                                        width: `calc(${columnWidthPercent}% - ${margin}px)`,
-                                        marginLeft: layout.column > 0 ? `${margin}px` : '0',
-                                      }}
-                                      onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
-                                    >
-                                      <div className="text-center relative w-full px-1">
-                                        <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
-                                        <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
-                                        
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            removeBlock(blockIdx)
-                                          }}
-                                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center hover:bg-red-600 transition-colors shadow-md z-30"
-                                        >
-                                          ×
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )
-                                })
-                              })()}
                             </td>
                           )
                         })}
@@ -776,6 +788,84 @@ export default function CandidatePage() {
                     )
                   })}
                 </tbody>
+              </table>
+              
+              {/* ブロックを日付列全体に一度だけレンダリング */}
+              <div className="absolute top-0 left-0 w-full" style={{ height: `${(18 - 9) * 96}px`, pointerEvents: 'none' }}>
+                {displayDates.map((date, dateIdx) => {
+                const dateStr = date.toISOString().split('T')[0]
+                const dateLayouts = dateLayoutsMap.get(dateStr)
+                
+                if (!dateLayouts || dateLayouts.size === 0) return null
+                
+                // この日付のすべてのブロックを取得（重複を防ぐため、各ブロックを一度だけ）
+                const allBlocksForDate = Array.from(dateLayouts.values())
+                
+                if (allBlocksForDate.length === 0) return null
+                
+                // マージンを考慮した幅と位置を計算
+                const margin = 2 // ブロック間のマージン（px）
+                const maxColumns = Math.max(...allBlocksForDate.map(l => l.column)) + 1
+                
+                return (
+                  <div
+                    key={dateIdx}
+                    className="absolute top-0"
+                    style={{
+                      left: `calc(${100 / (displayDates.length + 1)}% * ${dateIdx + 1})`,
+                      width: `calc(${100 / (displayDates.length + 1)}%)`,
+                      height: `${(18 - 9) * 96}px`, // 09:00から18:00まで
+                      pointerEvents: 'auto',
+                      zIndex: 10
+                    }}
+                  >
+                    {allBlocksForDate.map((layout) => {
+                      const block = layout.block
+                      const blockIdx = selectedBlocks.findIndex(b => b.id === block.id)
+                      const blockTopPosition = timeToPixelPosition(block.startTime) // 日付列全体に対する絶対位置
+                      const isDraggingThis = draggingBlockIndex === blockIdx
+                      
+                      // 幅と位置を計算（マージンを考慮）
+                      const columnWidthPercent = 100 / maxColumns
+                      const leftOffsetPercent = layout.column * columnWidthPercent
+                      
+                      return (
+                        <div
+                          key={block.id}
+                          className={`absolute bg-purple-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
+                            isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
+                          }`}
+                          style={{
+                            top: `${blockTopPosition}px`,
+                            height: `${blockHeightPx}px`,
+                            left: `${leftOffsetPercent}%`,
+                            width: `calc(${columnWidthPercent}% - ${margin}px)`,
+                            marginLeft: layout.column > 0 ? `${margin}px` : '0',
+                          }}
+                          onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
+                        >
+                          <div className="text-center relative w-full px-1">
+                            <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
+                            <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
+                            
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeBlock(blockIdx)
+                              }}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center hover:bg-red-600 transition-colors shadow-md z-30"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+              </div>
               </table>
             </div>
           )}
