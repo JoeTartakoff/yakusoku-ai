@@ -793,80 +793,79 @@ export default function CandidatePage() {
               {/* ブロックを日付列全体に一度だけレンダリング */}
               <div className="absolute top-0 left-0 w-full" style={{ height: `${(18 - 9) * 96}px`, pointerEvents: 'none' }}>
                 {displayDates.map((date, dateIdx) => {
-                const dateStr = date.toISOString().split('T')[0]
-                const dateLayouts = dateLayoutsMap.get(dateStr)
-                
-                if (!dateLayouts || dateLayouts.size === 0) return null
-                
-                // この日付のすべてのブロックを取得（重複を防ぐため、各ブロックを一度だけ）
-                const allBlocksForDate = Array.from(dateLayouts.values())
-                
-                if (allBlocksForDate.length === 0) return null
-                
-                // マージンを考慮した幅と位置を計算
-                const margin = 2 // ブロック間のマージン（px）
-                const maxColumns = Math.max(...allBlocksForDate.map(l => l.column)) + 1
-                
-                return (
-                  <div
-                    key={dateIdx}
-                    className="absolute top-0"
-                    style={{
-                      left: `calc(${100 / (displayDates.length + 1)}% * ${dateIdx + 1})`,
-                      width: `calc(${100 / (displayDates.length + 1)}%)`,
-                      height: `${(18 - 9) * 96}px`, // 09:00から18:00まで
-                      pointerEvents: 'auto',
-                      zIndex: 10
-                    }}
-                  >
-                    {allBlocksForDate.map((layout) => {
-                      const block = layout.block
-                      const blockIdx = selectedBlocks.findIndex(b => b.id === block.id)
-                      const blockTopPosition = timeToPixelPosition(block.startTime) // 日付列全体に対する絶対位置
-                      const isDraggingThis = draggingBlockIndex === blockIdx
-                      
-                      // 幅と位置を計算（マージンを考慮）
-                      const columnWidthPercent = 100 / maxColumns
-                      const leftOffsetPercent = layout.column * columnWidthPercent
-                      
-                      return (
-                        <div
-                          key={block.id}
-                          className={`absolute bg-purple-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
-                            isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
-                          }`}
-                          style={{
-                            top: `${blockTopPosition}px`,
-                            height: `${blockHeightPx}px`,
-                            left: `${leftOffsetPercent}%`,
-                            width: `calc(${columnWidthPercent}% - ${margin}px)`,
-                            marginLeft: layout.column > 0 ? `${margin}px` : '0',
-                          }}
-                          onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
-                        >
-                          <div className="text-center relative w-full px-1">
-                            <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
-                            <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
-                            
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                removeBlock(blockIdx)
-                              }}
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center hover:bg-red-600 transition-colors shadow-md z-30"
-                            >
-                              ×
-                            </button>
+                  const dateStr = date.toISOString().split('T')[0]
+                  const dateLayouts = dateLayoutsMap.get(dateStr)
+                  
+                  if (!dateLayouts || dateLayouts.size === 0) return null
+                  
+                  // この日付のすべてのブロックを取得（重複を防ぐため、各ブロックを一度だけ）
+                  const allBlocksForDate = Array.from(dateLayouts.values())
+                  
+                  if (allBlocksForDate.length === 0) return null
+                  
+                  // マージンを考慮した幅と位置を計算
+                  const margin = 2 // ブロック間のマージン（px）
+                  const maxColumns = Math.max(...allBlocksForDate.map(l => l.column)) + 1
+                  
+                  return (
+                    <div
+                      key={dateIdx}
+                      className="absolute top-0"
+                      style={{
+                        left: `calc(${100 / (displayDates.length + 1)}% * ${dateIdx + 1})`,
+                        width: `calc(${100 / (displayDates.length + 1)}%)`,
+                        height: `${(18 - 9) * 96}px`, // 09:00から18:00まで
+                        pointerEvents: 'auto',
+                        zIndex: 10
+                      }}
+                    >
+                      {allBlocksForDate.map((layout) => {
+                        const block = layout.block
+                        const blockIdx = selectedBlocks.findIndex(b => b.id === block.id)
+                        const blockTopPosition = timeToPixelPosition(block.startTime) // 日付列全体に対する絶対位置
+                        const isDraggingThis = draggingBlockIndex === blockIdx
+                        
+                        // 幅と位置を計算（マージンを考慮）
+                        const columnWidthPercent = 100 / maxColumns
+                        const leftOffsetPercent = layout.column * columnWidthPercent
+                        
+                        return (
+                          <div
+                            key={block.id}
+                            className={`absolute bg-purple-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
+                              isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
+                            }`}
+                            style={{
+                              top: `${blockTopPosition}px`,
+                              height: `${blockHeightPx}px`,
+                              left: `${leftOffsetPercent}%`,
+                              width: `calc(${columnWidthPercent}% - ${margin}px)`,
+                              marginLeft: layout.column > 0 ? `${margin}px` : '0',
+                            }}
+                            onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
+                          >
+                            <div className="text-center relative w-full px-1">
+                              <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
+                              <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
+                              
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removeBlock(blockIdx)
+                                }}
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-sm flex items-center justify-center hover:bg-red-600 transition-colors shadow-md z-30"
+                              >
+                                ×
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })}
+                        )
+                      })}
+                    </div>
+                  )
+                })}
               </div>
-              </table>
             </div>
           )}
         </div>
