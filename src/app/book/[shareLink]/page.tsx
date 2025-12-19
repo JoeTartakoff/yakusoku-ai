@@ -81,6 +81,37 @@ function timeToPixelPosition(time: string): number {
   return (relativeMinutes / 60) * 96
 }
 
+function groupOverlappingSlots(slots: AvailabilitySlot[]): AvailabilitySlot[][] {
+  const groups: AvailabilitySlot[][] = []
+  const used = new Set<number>()
+  
+  slots.forEach((slot, index) => {
+    if (used.has(index)) return
+    
+    const group = [slot]
+    used.add(index)
+    
+    slots.forEach((otherSlot, otherIndex) => {
+      if (used.has(otherIndex)) return
+      
+      const slotStart = timeToMinutes(slot.start_time)
+      const slotEnd = timeToMinutes(slot.end_time)
+      const otherStart = timeToMinutes(otherSlot.start_time)
+      const otherEnd = timeToMinutes(otherSlot.end_time)
+      
+      // 時間的に重複しているかチェック
+      if (slotStart < otherEnd && slotEnd > otherStart) {
+        group.push(otherSlot)
+        used.add(otherIndex)
+      }
+    })
+    
+    groups.push(group)
+  })
+  
+  return groups
+}
+
 export default function BookingPage() {
   const params = useParams()
   const shareLink = params.shareLink as string
@@ -983,42 +1014,57 @@ export default function BookingPage() {
                               })}
                               
                               {/* 利用可能スロットを青色ブロックで表示 */}
-                              {slotsInHour.map((slot, slotIdx) => {
-                                const slotStartMinutes = timeToMinutes(slot.start_time)
-                                const slotEndMinutes = timeToMinutes(slot.end_time)
+                              {(() => {
+                                // 重複するスロットをグループ化
+                                const groupedSlots = groupOverlappingSlots(slotsInHour)
                                 
-                                const slotTop = Math.max(0, (slotStartMinutes - hourStartMinutes) / 60 * 96)
-                                const slotBottom = Math.min(96, (slotEndMinutes - hourStartMinutes) / 60 * 96)
-                                const slotHeight = slotBottom - slotTop
-                                
-                                const isSelected = selectedBlock && 
-                                                  selectedBlock.date === slot.date &&
-                                                  selectedBlock.startTime === slot.start_time &&
-                                                  selectedBlock.endTime === slot.end_time
-                                
-                                return (
-                                  <div
-                                    key={`slot-${slotIdx}`}
-                                    className={`absolute left-1 right-1 rounded shadow-md cursor-pointer transition-all z-20 ${
-                                      isSelected
-                                        ? 'bg-blue-700 ring-2 ring-blue-400 ring-offset-1'
-                                        : 'bg-blue-500 hover:bg-blue-600'
-                                    }`}
-                                    style={{
-                                      top: `${slotTop}px`,
-                                      height: `${slotHeight}px`
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleSlotClick(slot)
-                                    }}
-                                  >
-                                    <div className="flex flex-col items-center justify-center h-full text-white text-xs font-medium px-1">
-                                      <div>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</div>
-                                    </div>
-                                  </div>
-                                )
-                              })}
+                                return groupedSlots.flatMap((group, groupIdx) => {
+                                  return group.map((slot, slotIdx) => {
+                                    const slotStartMinutes = timeToMinutes(slot.start_time)
+                                    const slotEndMinutes = timeToMinutes(slot.end_time)
+                                    
+                                    const slotTop = Math.max(0, (slotStartMinutes - hourStartMinutes) / 60 * 96)
+                                    const slotBottom = Math.min(96, (slotEndMinutes - hourStartMinutes) / 60 * 96)
+                                    const slotHeight = slotBottom - slotTop
+                                    
+                                    const isSelected = selectedBlock && 
+                                                      selectedBlock.date === slot.date &&
+                                                      selectedBlock.startTime === slot.start_time &&
+                                                      selectedBlock.endTime === slot.end_time
+                                    
+                                    // グループ内のスロット数に応じて幅と位置を計算
+                                    const slotWidth = group.length > 1 ? (100 / group.length) - 2 : 98 // グループが複数の場合、幅を調整
+                                    const leftOffset = group.length > 1 ? (slotIdx / group.length) * 100 + 1 : 1 // 左からのオフセット
+                                    const margin = group.length > 1 ? 2 : 0 // マージン
+                                    
+                                    return (
+                                      <div
+                                        key={`slot-group-${groupIdx}-slot-${slotIdx}`}
+                                        className={`absolute rounded shadow-md cursor-pointer transition-all z-20 ${
+                                          isSelected
+                                            ? 'bg-blue-700 ring-2 ring-blue-400 ring-offset-1'
+                                            : 'bg-blue-500 hover:bg-blue-600'
+                                        }`}
+                                        style={{
+                                          top: `${slotTop}px`,
+                                          height: `${slotHeight}px`,
+                                          left: `${leftOffset}%`,
+                                          width: `calc(${slotWidth}% - ${margin}px)`,
+                                          marginRight: `${margin}px`
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleSlotClick(slot)
+                                        }}
+                                      >
+                                        <div className="flex flex-col items-center justify-center h-full text-white text-xs font-medium px-1">
+                                          <div>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</div>
+                                        </div>
+                                      </div>
+                                    )
+                                  })
+                                })
+                              })()}
                             </td>
                           )
                         })}
