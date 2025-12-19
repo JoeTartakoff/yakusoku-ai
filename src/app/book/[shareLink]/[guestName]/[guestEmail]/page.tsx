@@ -35,6 +35,12 @@ interface TimeBlock {
   endTime: string
 }
 
+interface Booking {
+  booking_date: string
+  start_time: string
+  end_time: string
+}
+
 function getThreeDayDates(center: Date): Date[] {
   const dates: Date[] = []
   for (let i = 0; i <= 2; i++) {
@@ -81,6 +87,7 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true)
   const [schedule, setSchedule] = useState<Schedule | null>(null)
   const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([])
+  const [bookings, setBookings] = useState<Booking[]>([])
   const [selectedBlock, setSelectedBlock] = useState<TimeBlock | null>(null)
   const [showPopup, setShowPopup] = useState(false)
   const [guestInfo, setGuestInfo] = useState({
@@ -164,10 +171,35 @@ export default function BookingPage() {
     setStartDate(firstAvailableDate)
   }
 
+  const fetchBookings = async (scheduleId: string) => {
+    try {
+      const { data: bookingsData, error } = await supabase
+        .from('bookings')
+        .select('booking_date, start_time, end_time')
+        .eq('schedule_id', scheduleId)
+        .eq('status', 'confirmed')
+
+      if (error) {
+        console.error('❌ Failed to load bookings:', error)
+        return []
+      }
+
+      console.log('✅ Loaded bookings:', bookingsData?.length || 0)
+      return bookingsData || []
+    } catch (error) {
+      console.error('❌ Error fetching bookings:', error)
+      return []
+    }
+  }
+
   const fetchCalendarSlots = async (scheduleData: Schedule, guestUserId?: string) => {
     try {
       console.log('📅 Fetching calendar slots...')
       setIsLoadingSlots(true)
+
+      // 予約済みデータを取得
+      const bookingsData = await fetchBookings(scheduleData.id)
+      setBookings(bookingsData)
 
       const response = await fetch('/api/calendar/get-available-slots', {
         method: 'POST',
@@ -363,14 +395,34 @@ export default function BookingPage() {
     const startMinutes = timeToMinutes(startTime)
     const endMinutes = timeToMinutes(endTime)
     
-    for (let time = startMinutes; time < endMinutes; time += 30) {
-      const currentTime = minutesToTime(time)
-      if (!isHalfHourAvailable(date, currentTime)) {
-        return false
-      }
-    }
+    // 選択された時間帯が利用可能スロットの範囲内にあるかをチェック
+    // 開始時間がスロットの開始時間以降、終了時間がスロットの終了時間以前である必要がある
+    const isInAvailableSlot = availableSlots.some(slot => {
+      if (slot.date !== date) return false
+      
+      const slotStartMinutes = timeToMinutes(slot.start_time)
+      const slotEndMinutes = timeToMinutes(slot.end_time)
+      
+      // 選択された時間帯がスロットの範囲内にあるか
+      return slotStartMinutes <= startMinutes && slotEndMinutes >= endMinutes
+    })
     
-    return true
+    if (!isInAvailableSlot) return false
+    
+    // 選択された時間帯が予約済みの時間と重複していないかチェック
+    const hasOverlap = bookings.some(booking => {
+      if (booking.booking_date !== date) return false
+      
+      const bookingStartMinutes = timeToMinutes(booking.start_time)
+      const bookingEndMinutes = timeToMinutes(booking.end_time)
+      
+      // 時間帯が重複しているかチェック
+      return (
+        (startMinutes < bookingEndMinutes && endMinutes > bookingStartMinutes)
+      )
+    })
+    
+    return !hasOverlap
   }
 
   const handleCellClick = (date: string, hour: number, e: React.MouseEvent<HTMLDivElement>) => {
