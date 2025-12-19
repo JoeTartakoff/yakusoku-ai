@@ -99,9 +99,6 @@ export default function BookingPage() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [isPrefilledGuest, setIsPrefilledGuest] = useState(false)
   const [startDate, setStartDate] = useState<Date>(new Date())
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStartY, setDragStartY] = useState(0)
-  const [dragInitialTop, setDragInitialTop] = useState(0)
 
   const initRef = useRef(false)
   const guestLoginProcessedRef = useRef(false)
@@ -396,20 +393,25 @@ export default function BookingPage() {
     const endMinutes = timeToMinutes(endTime)
     
     // 選択された時間帯が利用可能スロットの範囲内にあるかをチェック
-    // 開始時間がスロットの開始時間以降、終了時間がスロットの終了時間以前である必要がある
+    // 選択時間の開始がスロットの開始以降、選択時間の終了がスロットの終了以前である必要がある
     const isInAvailableSlot = availableSlots.some(slot => {
       if (slot.date !== date) return false
       
       const slotStartMinutes = timeToMinutes(slot.start_time)
       const slotEndMinutes = timeToMinutes(slot.end_time)
       
-      // 選択された時間帯がスロットの範囲内にあるか
+      // 選択された時間帯がスロットの範囲内に完全に含まれているか
+      // 選択時間の開始がスロットの開始以降、選択時間の終了がスロットの終了以前
       return slotStartMinutes <= startMinutes && slotEndMinutes >= endMinutes
     })
     
-    if (!isInAvailableSlot) return false
+    if (!isInAvailableSlot) {
+      return false
+    }
     
     // 選択された時間帯が予約済みの時間と重複していないかチェック
+    // APIから返されるavailableSlotsには既に予約済みのスロットが除外されているが、
+    // 念のため再度チェック（リアルタイムで予約が追加された場合に備える）
     const hasOverlap = bookings.some(booking => {
       if (booking.booking_date !== date) return false
       
@@ -425,89 +427,18 @@ export default function BookingPage() {
     return !hasOverlap
   }
 
-  const handleCellClick = (date: string, hour: number, e: React.MouseEvent<HTMLDivElement>) => {
-    if (!schedule || isDragging) return
-    
-    const rect = e.currentTarget.getBoundingClientRect()
-    const clickY = e.clientY - rect.top
-    const cellHeight = rect.height
-    
-    const minute = clickY < cellHeight / 2 ? 0 : 30
-    
-    const startMinutes = hour * 60 + minute
-    const startTime = minutesToTime(startMinutes)
-    const endMinutes = startMinutes + schedule.time_slot_duration
-    const endTime = minutesToTime(endMinutes)
-    
-    if (!isTimeSlotAvailable(date, startTime, endTime)) {
-      alert('この時間帯は予約できません')
-      return
-    }
+  const handleSlotClick = (slot: AvailabilitySlot) => {
+    if (!schedule) return
     
     setSelectedBlock({
-      date,
-      startTime,
-      endTime
+      date: slot.date,
+      startTime: slot.start_time,
+      endTime: slot.end_time
     })
     
     setShowPopup(true)
   }
 
-  const handleBlockMouseDown = (e: React.MouseEvent) => {
-    if (!selectedBlock) return
-    
-    e.stopPropagation()
-    e.preventDefault()
-    
-    setIsDragging(true)
-    setDragStartY(e.clientY)
-    setDragInitialTop(timeToMinutes(selectedBlock.startTime))
-  }
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !selectedBlock || !schedule) return
-    
-    const deltaY = e.clientY - dragStartY
-    const deltaMinutes = Math.round((deltaY / 96) * 60)
-    
-    let newStartMinutes = dragInitialTop + deltaMinutes
-    newStartMinutes = snapToHalfHour(newStartMinutes)
-    
-    const minMinutes = 9 * 60
-    const maxMinutes = 18 * 60 - schedule.time_slot_duration
-    
-    if (newStartMinutes < minMinutes) newStartMinutes = minMinutes
-    if (newStartMinutes > maxMinutes) newStartMinutes = maxMinutes
-    
-    const newStartTime = minutesToTime(newStartMinutes)
-    const newEndMinutes = newStartMinutes + schedule.time_slot_duration
-    const newEndTime = minutesToTime(newEndMinutes)
-    
-    if (!isTimeSlotAvailable(selectedBlock.date, newStartTime, newEndTime)) {
-      return
-    }
-    
-    setSelectedBlock({
-      ...selectedBlock,
-      startTime: newStartTime,
-      endTime: newEndTime
-    })
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove)
-        window.removeEventListener('mouseup', handleMouseUp)
-      }
-    }
-  }, [isDragging, selectedBlock, schedule, dragStartY, dragInitialTop])
 
   const cancelSelection = () => {
     setSelectedBlock(null)
@@ -824,83 +755,96 @@ export default function BookingPage() {
                         {displayDates.map((date, dateIdx) => {
                           const dateStr = date.toISOString().split('T')[0]
                           
-                          const firstHalfTime = `${String(hour).padStart(2, '0')}:00`
-                          const secondHalfTime = `${String(hour).padStart(2, '0')}:30`
-                          const isFirstHalfAvailable = isHalfHourAvailable(dateStr, firstHalfTime)
-                          const isSecondHalfAvailable = isHalfHourAvailable(dateStr, secondHalfTime)
+                          // この日付の利用可能スロットを取得
+                          const slotsForDate = availableSlots
+                            .filter(slot => slot.date === dateStr)
+                            .sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time))
                           
-                          const blockStartHour = selectedBlock ? Math.floor(timeToMinutes(selectedBlock.startTime) / 60) : -1
-                          const isBlockStart = selectedBlock && 
-                                               selectedBlock.date === dateStr && 
-                                               blockStartHour === hour
+                          // この時間帯（hour）に含まれるスロットを取得
+                          const hourStartMinutes = hour * 60
+                          const hourEndMinutes = (hour + 1) * 60
+                          const slotsInHour = slotsForDate.filter(slot => {
+                            const slotStartMinutes = timeToMinutes(slot.start_time)
+                            const slotEndMinutes = timeToMinutes(slot.end_time)
+                            return (
+                              (slotStartMinutes >= hourStartMinutes && slotStartMinutes < hourEndMinutes) ||
+                              (slotEndMinutes > hourStartMinutes && slotEndMinutes <= hourEndMinutes) ||
+                              (slotStartMinutes < hourStartMinutes && slotEndMinutes > hourEndMinutes)
+                            )
+                          })
                           
-                          const blockTopPosition = selectedBlock && isBlockStart
-                            ? timeToPixelPosition(selectedBlock.startTime) - (blockStartHour - 9) * 96
-                            : 0
+                          // この日付の予約済み時間を取得
+                          const bookingsForDate = bookings.filter(booking => booking.booking_date === dateStr)
 
                           return (
                             <td 
                               key={dateIdx} 
                               className="border border-gray-300 p-0 relative"
                               style={{ height: '96px' }}
-                              onClick={(e) => handleCellClick(dateStr, hour, e)}
                             >
-                              <div 
-                                className={`absolute top-0 left-0 right-0 cursor-pointer transition-colors ${
-                                  isFirstHalfAvailable 
-                                    ? 'hover:bg-blue-50' 
-                                    : 'bg-gray-200 cursor-not-allowed'
-                                }`}
-                                style={{ height: '48px' }}
-                              >
-                                {!isFirstHalfAvailable && (
-                                  <div className="flex items-center justify-center h-full">
-                                    <span className="text-xs text-gray-400 font-medium opacity-80">予約不可</span>
-                                  </div>
-                                )}
-                              </div>
+                              {/* 予約済み時間を表示（白い背景） */}
+                              {bookingsForDate.map((booking, bookingIdx) => {
+                                const bookingStartMinutes = timeToMinutes(booking.start_time)
+                                const bookingEndMinutes = timeToMinutes(booking.end_time)
+                                
+                                // この時間帯に含まれる予約のみ表示
+                                if (bookingStartMinutes >= hourEndMinutes || bookingEndMinutes <= hourStartMinutes) {
+                                  return null
+                                }
+                                
+                                const bookingTop = Math.max(0, (bookingStartMinutes - hourStartMinutes) / 60 * 96)
+                                const bookingBottom = Math.min(96, (bookingEndMinutes - hourStartMinutes) / 60 * 96)
+                                const bookingHeight = bookingBottom - bookingTop
+                                
+                                return (
+                                  <div
+                                    key={`booking-${bookingIdx}`}
+                                    className="absolute left-0 right-0 bg-white border border-gray-300 rounded z-10"
+                                    style={{
+                                      top: `${bookingTop}px`,
+                                      height: `${bookingHeight}px`
+                                    }}
+                                  />
+                                )
+                              })}
                               
-                              <div 
-                                className="absolute left-0 right-0 border-t border-dashed border-gray-300 pointer-events-none z-10" 
-                                style={{ top: '48px' }} 
-                              />
-                              
-                              <div 
-                                className={`absolute bottom-0 left-0 right-0 cursor-pointer transition-colors ${
-                                  isSecondHalfAvailable 
-                                    ? 'hover:bg-blue-50' 
-                                    : 'bg-gray-200 cursor-not-allowed'
-                                }`}
-                                style={{ height: '48px' }}
-                              >
-                                {!isSecondHalfAvailable && (
-                                  <div className="flex items-center justify-center h-full">
-                                    <span className="text-xs text-gray-400 font-medium opacity-80">予約不可</span>
+                              {/* 利用可能スロットを青色ブロックで表示 */}
+                              {slotsInHour.map((slot, slotIdx) => {
+                                const slotStartMinutes = timeToMinutes(slot.start_time)
+                                const slotEndMinutes = timeToMinutes(slot.end_time)
+                                
+                                const slotTop = Math.max(0, (slotStartMinutes - hourStartMinutes) / 60 * 96)
+                                const slotBottom = Math.min(96, (slotEndMinutes - hourStartMinutes) / 60 * 96)
+                                const slotHeight = slotBottom - slotTop
+                                
+                                const isSelected = selectedBlock && 
+                                                  selectedBlock.date === slot.date &&
+                                                  selectedBlock.startTime === slot.start_time &&
+                                                  selectedBlock.endTime === slot.end_time
+                                
+                                return (
+                                  <div
+                                    key={`slot-${slotIdx}`}
+                                    className={`absolute left-1 right-1 rounded shadow-md cursor-pointer transition-all z-20 ${
+                                      isSelected
+                                        ? 'bg-blue-700 ring-2 ring-blue-400 ring-offset-1'
+                                        : 'bg-blue-500 hover:bg-blue-600'
+                                    }`}
+                                    style={{
+                                      top: `${slotTop}px`,
+                                      height: `${slotHeight}px`
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleSlotClick(slot)
+                                    }}
+                                  >
+                                    <div className="flex flex-col items-center justify-center h-full text-white text-xs font-medium px-1">
+                                      <div>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</div>
+                                    </div>
                                   </div>
-                                )}
-                              </div>
-                              
-                              {isBlockStart && !showPopup && (
-                                <div
-                                  className={`absolute left-1 right-1 bg-blue-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
-                                    isDragging ? 'cursor-grabbing' : 'cursor-move'
-                                  }`}
-                                  style={{
-                                    top: `${blockTopPosition}px`,
-                                    height: `${blockHeightPx}px`
-                                  }}
-                                  onMouseDown={handleBlockMouseDown}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setShowPopup(true)
-                                  }}
-                                >
-                                  <div className="text-center relative w-full">
-                                    <div>{selectedBlock.startTime.slice(0, 5)} - {selectedBlock.endTime.slice(0, 5)}</div>
-                                    <div className="text-[10px] opacity-80 mt-1">クリックで確定</div>
-                                  </div>
-                                </div>
-                              )}
+                                )
+                              })}
                             </td>
                           )
                         })}
