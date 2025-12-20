@@ -99,30 +99,67 @@ const CalendarCell = memo(function CalendarCell({
   selectedBlock,
   onSlotClick,
 }: CalendarCellProps) {
-  const dateStr = date.toISOString().split('T')[0]
-  const dayOfWeek = date.getDay()
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-  
-  // 時間帯別スロットをメモ化
-  const slotsInHour = useMemo(() => {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:94',message:'CalendarCell render entry',data:{dateStr:date?.toISOString(),hour,slotsForDateIsArray:Array.isArray(slotsForDate),slotsForDateLength:slotsForDate?.length,bookingsForDateIsArray:Array.isArray(bookingsForDate),bookingsForDateLength:bookingsForDate?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
+  try {
+    const dateStr = date.toISOString().split('T')[0]
+    const dayOfWeek = date.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    
+    // 時間帯別スロットをメモ化
+    const slotsInHour = useMemo(() => {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:107',message:'slotsInHour useMemo entry',data:{slotsForDateLength:slotsForDate?.length,slotsForDateIsArray:Array.isArray(slotsForDate),hour},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      try {
+        if (!Array.isArray(slotsForDate)) {
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:110',message:'slotsForDate is not array in useMemo',data:{slotsForDateType:typeof slotsForDate},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
+          return []
+        }
+        const hourStartMinutes = hour * 60
+        const hourEndMinutes = (hour + 1) * 60
+        
+        const filtered = slotsForDate.filter(slot => {
+          const slotStartMinutes = timeToMinutes(slot.start_time)
+          const slotEndMinutes = timeToMinutes(slot.end_time)
+          return (
+            (slotStartMinutes >= hourStartMinutes && slotStartMinutes < hourEndMinutes) ||
+            (slotEndMinutes > hourStartMinutes && slotEndMinutes <= hourEndMinutes) ||
+            (slotStartMinutes < hourStartMinutes && slotEndMinutes > hourEndMinutes)
+          )
+        })
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:125',message:'slotsInHour useMemo exit',data:{filteredLength:filtered.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        return filtered
+      } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:129',message:'slotsInHour useMemo error',data:{errorMessage:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        return []
+      }
+    }, [slotsForDate, hour])
+    
     const hourStartMinutes = hour * 60
     const hourEndMinutes = (hour + 1) * 60
     
-    return slotsForDate.filter(slot => {
-      const slotStartMinutes = timeToMinutes(slot.start_time)
-      const slotEndMinutes = timeToMinutes(slot.end_time)
+    if (!Array.isArray(slotsForDate) || !Array.isArray(bookingsForDate)) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:137',message:'CalendarCell props validation failed',data:{slotsForDateIsArray:Array.isArray(slotsForDate),bookingsForDateIsArray:Array.isArray(bookingsForDate)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       return (
-        (slotStartMinutes >= hourStartMinutes && slotStartMinutes < hourEndMinutes) ||
-        (slotEndMinutes > hourStartMinutes && slotEndMinutes <= hourEndMinutes) ||
-        (slotStartMinutes < hourStartMinutes && slotEndMinutes > hourEndMinutes)
+        <td className="border border-gray-300 p-0 relative bg-white" style={{ height: '96px' }} />
       )
-    })
-  }, [slotsForDate, hour])
-  
-  const hourStartMinutes = hour * 60
-  const hourEndMinutes = (hour + 1) * 60
+    }
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:143',message:'CalendarCell before render',data:{slotsInHourLength:slotsInHour?.length,bookingsForDateLength:bookingsForDate.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
 
-  return (
+    return (
     <td 
       className={`border border-gray-300 p-0 relative ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}
       style={{ height: '96px' }}
@@ -226,7 +263,15 @@ const CalendarCell = memo(function CalendarCell({
         )
       })}
     </td>
-  )
+    )
+  } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:267',message:'CalendarCell render error',data:{errorMessage:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    return (
+      <td className="border border-gray-300 p-0 relative bg-white" style={{ height: '96px' }} />
+    )
+  }
 })
 
 export default function BookingPage() {
@@ -950,34 +995,90 @@ export default function BookingPage() {
   }, [])
 
   // 表示する日付をメモ化
+  const scheduleDateRangeStart = schedule?.date_range_start
+  const scheduleDateRangeEnd = schedule?.date_range_end
   const displayDates = useMemo(() => {
-    if (!schedule) return []
-    return getThreeDayDates(startDate).filter(date => 
-      isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
-    )
-  }, [startDate, schedule])
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:998',message:'displayDates useMemo entry',data:{scheduleExists:!!schedule,scheduleDateRangeStart,scheduleDateRangeEnd,startDateValue:startDate?.toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    if (!schedule || !scheduleDateRangeStart || !scheduleDateRangeEnd) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:1002',message:'displayDates schedule is null or invalid',data:{scheduleExists:!!schedule,hasStart:!!scheduleDateRangeStart,hasEnd:!!scheduleDateRangeEnd},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      return []
+    }
+    try {
+      const dates = getThreeDayDates(startDate).filter(date => 
+        isDateInRange(date, scheduleDateRangeStart, scheduleDateRangeEnd)
+      )
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:1009',message:'displayDates useMemo exit',data:{datesLength:dates.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      return dates
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:1015',message:'displayDates useMemo error',data:{errorMessage:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      return []
+    }
+  }, [startDate, scheduleDateRangeStart, scheduleDateRangeEnd])
 
   // スロットを日付別Mapに変換（O(n) → O(1)アクセス）
   const slotsByDate = useMemo(() => {
-    const map = new Map<string, AvailabilitySlot[]>()
-    availableSlots.forEach(slot => {
-      const existing = map.get(slot.date) || []
-      const sorted = [...existing, slot].sort((a, b) => 
-        timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
-      )
-      map.set(slot.date, sorted)
-    })
-    return map
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:961',message:'slotsByDate useMemo entry',data:{availableSlotsLength:availableSlots?.length,availableSlotsIsArray:Array.isArray(availableSlots)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    try {
+      const map = new Map<string, AvailabilitySlot[]>()
+      if (!Array.isArray(availableSlots)) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:965',message:'availableSlots is not array',data:{availableSlotsType:typeof availableSlots,availableSlotsValue:availableSlots},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        return map
+      }
+      availableSlots.forEach(slot => {
+        const existing = map.get(slot.date) || []
+        const sorted = [...existing, slot].sort((a, b) => 
+          timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
+        )
+        map.set(slot.date, sorted)
+      })
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:976',message:'slotsByDate useMemo exit',data:{mapSize:map.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      return map
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:979',message:'slotsByDate useMemo error',data:{errorMessage:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      return new Map<string, AvailabilitySlot[]>()
+    }
   }, [availableSlots])
 
   // 予約を日付別Mapに変換
   const bookingsByDate = useMemo(() => {
-    const map = new Map<string, Booking[]>()
-    bookings.forEach(booking => {
-      const existing = map.get(booking.booking_date) || []
-      map.set(booking.booking_date, [...existing, booking])
-    })
-    return map
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:985',message:'bookingsByDate useMemo entry',data:{bookingsLength:bookings?.length,bookingsIsArray:Array.isArray(bookings)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    try {
+      const map = new Map<string, Booking[]>()
+      if (!Array.isArray(bookings)) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:989',message:'bookings is not array',data:{bookingsType:typeof bookings,bookingsValue:bookings},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        return map
+      }
+      bookings.forEach(booking => {
+        const existing = map.get(booking.booking_date) || []
+        map.set(booking.booking_date, [...existing, booking])
+      })
+      return map
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:998',message:'bookingsByDate useMemo error',data:{errorMessage:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      return new Map<string, Booking[]>()
+    }
   }, [bookings])
 
   const blockHeightPx = schedule ? (schedule.time_slot_duration / 60) * 96 : 96
@@ -1170,6 +1271,9 @@ export default function BookingPage() {
                           {String(hour).padStart(2, '0')}:00
                         </td>
                         {displayDates.map((date, dateIdx) => {
+                          // #region agent log
+                          fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:1259',message:'CalendarCell call entry',data:{dateStr:date?.toISOString(),hour,slotsByDateExists:!!slotsByDate,bookingsByDateExists:!!bookingsByDate},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                          // #endregion
                           const dateStr = date.toISOString().split('T')[0]
                           
                           // Mapから日付別スロットを取得（O(1)アクセス）
@@ -1177,6 +1281,10 @@ export default function BookingPage() {
                           
                           // Mapから日付別予約を取得（O(1)アクセス）
                           const bookingsForDate = bookingsByDate.get(dateStr) || []
+                          
+                          // #region agent log
+                          fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:1269',message:'CalendarCell props before render',data:{slotsForDateIsArray:Array.isArray(slotsForDate),slotsForDateLength:slotsForDate?.length,bookingsForDateIsArray:Array.isArray(bookingsForDate),bookingsForDateLength:bookingsForDate?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                          // #endregion
 
                           return (
                             <CalendarCell
