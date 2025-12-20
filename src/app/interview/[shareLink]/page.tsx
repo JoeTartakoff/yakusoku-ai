@@ -540,9 +540,11 @@ export default function InterviewPage() {
                     {displayDates.map((date, idx) => {
                       const today = new Date()
                       const isToday = date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+                      const dayOfWeek = date.getDay()
+                      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0=日曜日, 6=土曜日
                       
                       return (
-                        <th key={idx} className="border border-gray-200 bg-gray-50 p-2 text-sm font-medium text-gray-900">
+                        <th key={idx} className={`border border-gray-200 p-2 text-sm font-medium text-gray-900 ${isWeekend ? 'bg-orange-50' : 'bg-gray-50'}`}>
                           <div>
                             {date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
                           </div>

@@ -814,9 +814,11 @@ export default function BookingPage() {
                     {displayDates.map((date, idx) => {
                       const today = new Date()
                       const isToday = date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+                      const dayOfWeek = date.getDay()
+                      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0=日曜日, 6=土曜日
                       
                       return (
-                        <th key={idx} className="border border-gray-300 bg-gray-50 p-2">
+                        <th key={idx} className={`border border-gray-300 p-2 ${isWeekend ? 'bg-orange-50' : 'bg-gray-50'}`}>
                           <div className={`text-base font-bold ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
                             {date.getDate()}({date.toLocaleDateString('ja-JP', { weekday: 'short' })})
                           </div>
@@ -881,7 +883,7 @@ export default function BookingPage() {
                                 return (
                                   <div
                                     key={`booking-${bookingIdx}`}
-                                    className="absolute left-0 right-0 bg-white border border-gray-300 rounded z-10"
+                                    className={`absolute left-0 right-0 border border-gray-300 rounded z-10 ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}
                                     style={{
                                       top: `${bookingTop}px`,
                                       height: `${bookingHeight}px`
