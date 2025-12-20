@@ -12,6 +12,11 @@ interface Schedule {
   date_range_end: string
   time_slot_duration: number
   user_id: string
+  is_interview_mode: boolean
+  interview_time_start: string | null
+  interview_time_end: string | null
+  working_hours_start: string | null
+  working_hours_end: string | null
 }
 
 interface AvailabilitySlot {
@@ -84,9 +89,9 @@ function snapToHalfHour(minutes: number): number {
   return Math.round(minutes / 30) * 30
 }
 
-function timeToPixelPosition(time: string): number {
+function timeToPixelPosition(time: string, baseHour: number = 9): number {
   const minutes = timeToMinutes(time)
-  const baseMinutes = 9 * 60
+  const baseMinutes = baseHour * 60
   const relativeMinutes = minutes - baseMinutes
   return (relativeMinutes / 60) * 96
 }
@@ -653,8 +658,35 @@ export default function BookingPage() {
     )
   }
 
+  // 営業時間を取得
+  const workingHours = (() => {
+    if (!schedule) {
+      return { start: 9, end: 18 }
+    }
+    
+    // インタビューモードの場合はinterview_time_start/endを使用
+    if (schedule.is_interview_mode) {
+      const start = schedule.interview_time_start 
+        ? Math.floor(timeToMinutes(schedule.interview_time_start) / 60)
+        : 9
+      const end = schedule.interview_time_end 
+        ? Math.floor(timeToMinutes(schedule.interview_time_end) / 60)
+        : 18
+      return { start, end }
+    }
+    
+    // 通常モード・候補時間提示モードの場合はworking_hours_start/endを使用
+    const start = schedule.working_hours_start 
+      ? Math.floor(timeToMinutes(schedule.working_hours_start) / 60)
+      : 9
+    const end = schedule.working_hours_end 
+      ? Math.floor(timeToMinutes(schedule.working_hours_end) / 60)
+      : 18
+    return { start, end }
+  })()
+
   const hourSlots: number[] = []
-  for (let hour = 9; hour <= 17; hour++) {
+  for (let hour = workingHours.start; hour < workingHours.end; hour++) {
     hourSlots.push(hour)
   }
 
