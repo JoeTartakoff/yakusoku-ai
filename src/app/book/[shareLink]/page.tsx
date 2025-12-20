@@ -326,14 +326,11 @@ export default function BookingPage() {
     }
   }
 
-  // ⭐ 段階的に空き枠を取得する関数
+  // ⭐ 段階的に空き枠を取得する関数（最適化版：並列データ取得）
   const fetchCalendarSlotsProgressive = async (scheduleData: Schedule, guestUserId?: string) => {
     try {
       // ⭐ 最初にローディング状態を設定
       setIsLoadingSlots(true)
-      // 予約済みデータを取得
-      const bookingsData = await fetchBookings(scheduleData.id)
-      setBookings(bookingsData)
       
       const today = new Date()
       const todayStr = today.toISOString().split('T')[0]
@@ -345,12 +342,18 @@ export default function BookingPage() {
       
       // スケジュールの終了日
       const scheduleEndStr = scheduleData.date_range_end
+      const firstWeekEnd = oneWeekLaterStr < scheduleEndStr ? oneWeekLaterStr : scheduleEndStr
       
       console.log('🚀 Progressive loading: First week (today to 1 week later)')
       
-      // まず本日から1週間分を取得
-      const firstWeekEnd = oneWeekLaterStr < scheduleEndStr ? oneWeekLaterStr : scheduleEndStr
-      const firstWeekSlots = await fetchCalendarSlots(scheduleData, guestUserId, todayStr, firstWeekEnd)
+      // ⭐ 最適化: 予約情報とカレンダースロットを並列取得
+      const [bookingsData, firstWeekSlots] = await Promise.all([
+        fetchBookings(scheduleData.id),
+        fetchCalendarSlots(scheduleData, guestUserId, todayStr, firstWeekEnd)
+      ])
+      
+      // 予約情報を設定
+      setBookings(bookingsData)
       
       // ⭐ 最初の1週間分の取得が完了したので、ローディングを解除
       setIsLoadingSlots(false)
@@ -421,10 +424,13 @@ export default function BookingPage() {
 
       const init = async () => {
         try {
-          const scheduleData = await fetchScheduleInfo()
+          // ⭐ 最適化: スケジュール情報取得とユーザー認証チェックを並列実行
+          const [scheduleData, { data: { user } }] = await Promise.all([
+            fetchScheduleInfo(),
+            supabase.auth.getUser()
+          ])
+          
           if (!scheduleData) return
-
-          const { data: { user } } = await supabase.auth.getUser()
           
           if (user) {
             console.log('👤 User logged in:', user.email)
@@ -435,19 +441,26 @@ export default function BookingPage() {
               email: user.email || '',
             })
             
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session?.provider_token && session?.provider_refresh_token) {
-              await supabase.from('user_tokens').upsert({
-                user_id: user.id,
-                access_token: session.provider_token,
-                refresh_token: session.provider_refresh_token,
-                expires_at: new Date(Date.now() + (session.expires_in || 3600) * 1000).toISOString(),
-                updated_at: new Date().toISOString(),
-              }, { onConflict: 'user_id' })
-            }
+            // ⭐ トークン保存とスロット取得を並列実行（トークン保存は非同期で完了を待たない）
+            const sessionPromise = supabase.auth.getSession().then(({ data: { session } }) => {
+              if (session?.provider_token && session?.provider_refresh_token) {
+                return supabase.from('user_tokens').upsert({
+                  user_id: user.id,
+                  access_token: session.provider_token,
+                  refresh_token: session.provider_refresh_token,
+                  expires_at: new Date(Date.now() + (session.expires_in || 3600) * 1000).toISOString(),
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: 'user_id' })
+              }
+            })
             
-            // ⭐ 段階的取得を使用
+            // ⭐ スロット取得を優先、トークン保存はバックグラウンドで実行
             fetchCalendarSlotsProgressive(scheduleData, user.id)
+            
+            // トークン保存は非同期で実行（エラーは無視）
+            sessionPromise.catch(error => {
+              console.error('⚠️ Failed to save tokens:', error)
+            })
           } else {
             console.log('👤 No user logged in')
             // ⭐ 段階的取得を使用

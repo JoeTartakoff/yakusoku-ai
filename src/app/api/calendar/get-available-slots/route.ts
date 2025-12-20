@@ -342,6 +342,7 @@ export async function POST(request: Request) {
     console.log(`⏱️ Total API time: ${totalTime}ms`)
     console.log('=== API COMPLETED SUCCESSFULLY ===')
 
+    // ⭐ 最適化: キャッシュヘッダーを追加（5分間キャッシュ、10分間stale-while-revalidate）
     return NextResponse.json({ 
       success: true,
       slots: availableSlots,
@@ -356,6 +357,10 @@ export async function POST(request: Request) {
         isTeamSchedule: !!schedule.team_id,
         executionTimeMs: totalTime,
         parallelFetchTimeMs: parallelTime,
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       }
     })
   } catch (error: unknown) {
