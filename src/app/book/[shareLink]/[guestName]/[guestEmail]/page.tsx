@@ -564,6 +564,7 @@ export default function BookingPage() {
             guestName: guestInfo.name,
             guestEmail: guestInfo.email,
             guestUserId: guestUser?.id,
+            comment: guestInfo.comment || null,
           }),
         })
         

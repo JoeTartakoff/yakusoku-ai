@@ -16,6 +16,7 @@ interface BookingEmailData {
   endTime: string
   meetLink?: string
   bookingMode: 'normal' | 'propose_times' | 'receive_proposals'
+  comment?: string | null
 }
 
 export async function sendHostBookingNotification(data: BookingEmailData) {
@@ -29,7 +30,8 @@ export async function sendHostBookingNotification(data: BookingEmailData) {
     startTime,
     endTime,
     meetLink,
-    bookingMode
+    bookingMode,
+    comment
   } = data
 
   const modeText = {
@@ -104,9 +106,17 @@ export async function sendHostBookingNotification(data: BookingEmailData) {
               <strong>日時:</strong> ${bookingDate}
             </div>
             
-            <div style="margin-bottom: 0;">
+            <div style="margin-bottom: ${comment ? '10px' : '0'};">
               <strong>時間:</strong> ${startTime} - ${endTime}
             </div>
+            ${comment ? `
+            <div style="margin-bottom: 0; margin-top: 15px; padding-top: 15px; border-top: 1px solid #E5E7EB;">
+              <strong>コメント:</strong>
+              <div style="margin-top: 8px; padding: 12px; background-color: #F9FAFB; border-radius: 6px; white-space: pre-wrap; color: #374151;">
+                ${comment}
+              </div>
+            </div>
+            ` : ''}
           </div>
           
           ${meetSection}
@@ -150,7 +160,8 @@ export async function sendGuestBookingConfirmation(data: BookingEmailData) {
     startTime,
     endTime,
     meetLink,
-    bookingMode
+    bookingMode,
+    comment
   } = data
 
   const modeText = {
@@ -226,9 +237,17 @@ export async function sendGuestBookingConfirmation(data: BookingEmailData) {
               <strong>日時:</strong> ${bookingDate}
             </div>
             
-            <div style="margin-bottom: 0;">
+            <div style="margin-bottom: ${comment ? '10px' : '0'};">
               <strong>時間:</strong> ${startTime} - ${endTime}
             </div>
+            ${comment ? `
+            <div style="margin-bottom: 0; margin-top: 15px; padding-top: 15px; border-top: 1px solid #E5E7EB;">
+              <strong>コメント:</strong>
+              <div style="margin-top: 8px; padding: 12px; background-color: #F9FAFB; border-radius: 6px; white-space: pre-wrap; color: #374151;">
+                ${comment}
+              </div>
+            </div>
+            ` : ''}
           </div>
           
           ${meetSection}

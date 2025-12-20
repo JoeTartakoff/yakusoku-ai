@@ -405,7 +405,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('📦 Request body:', JSON.stringify(body, null, 2))
 
-    const { scheduleId, bookingDate, startTime, endTime, guestName, guestEmail, guestUserId } = body
+    const { scheduleId, bookingDate, startTime, endTime, guestName, guestEmail, guestUserId, comment } = body
 
     console.log('\n=== ADD EVENT API START ===')
     console.log('📋 Request:', { scheduleId, bookingDate, startTime, endTime, guestName, guestEmail })
@@ -434,7 +434,7 @@ export async function POST(request: Request) {
 
     const hostEventData: Record<string, unknown> = {
       summary: `${schedule.title} - ${guestName}`,
-      description: `予約者: ${guestName}\nメール: ${guestEmail}`,
+      description: `予約者: ${guestName}\nメール: ${guestEmail}${comment ? `\n\nコメント:\n${comment}` : ''}`,
       start: {
         dateTime: startDateTime,
         timeZone: 'Asia/Tokyo',
@@ -696,6 +696,7 @@ export async function POST(request: Request) {
         endTime,
         meetLink,
         bookingMode: 'normal',
+        comment: comment || null,
       })
 
       if (!emailResult.allSuccess) {
