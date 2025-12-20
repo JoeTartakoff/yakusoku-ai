@@ -277,6 +277,7 @@ export default function BookingPage() {
   const [guestInfo, setGuestInfo] = useState({
     name: '',
     email: '',
+    comment: '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [guestUser, setGuestUser] = useState<User | null>(null)
@@ -802,6 +803,7 @@ export default function BookingPage() {
           start_time: selectedBlock.startTime,
           end_time: selectedBlock.endTime,
           status: 'confirmed',
+          comment: guestInfo.comment || null,
         })
 
       if (bookingError) {
@@ -1412,16 +1414,18 @@ export default function BookingPage() {
                   />
                 </div>
 
-                {guestUser && (
-                  <div className="bg-green-50 p-3 rounded-md border border-green-200">
-                    <p className="text-xs text-green-800 font-medium">
-                      ✅ Googleアカウント連携済み
-                    </p>
-                    <p className="text-xs text-green-700 mt-1">
-                      カレンダーに自動追加されます
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    コメント
+                  </label>
+                  <textarea
+                    value={guestInfo.comment}
+                    onChange={(e) => setGuestInfo({ ...guestInfo, comment: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="ご質問やご要望がございましたらお書きください（任意）"
+                    rows={4}
+                  />
+                </div>
 
                 <div className="flex gap-3 pt-4">
                   <button
