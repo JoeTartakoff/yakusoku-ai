@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { v4 as uuidv4 } from 'uuid'
+import { nanoid } from 'nanoid'
 
 interface Team {
   id: string
@@ -223,7 +223,7 @@ export default function NewSchedulePage() {
 
     setLoadingSlots(true)
     try {
-      const tempScheduleId = uuidv4()
+      const tempScheduleId = nanoid(8)
       
       const { data: tempSchedule, error: tempError } = await supabase
         .from('schedules')
@@ -343,7 +343,7 @@ export default function NewSchedulePage() {
     
     // 새 박스 생성
     const newBlock: TimeBlock = {
-      id: uuidv4(),
+      id: nanoid(),
       date,
       startTime,
       endTime
@@ -542,7 +542,7 @@ export default function NewSchedulePage() {
         throw new Error('ログインが必要です')
       }
 
-      const shareLink = uuidv4()
+      const shareLink = nanoid(8)
 
       // ⭐ selectedBlocks를 candidate_slots 형식으로 변환
       const candidateSlotsData = selectedBlocks.map(block => ({
