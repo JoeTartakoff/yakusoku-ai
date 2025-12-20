@@ -951,25 +951,15 @@ export default function BookingPage() {
     return slots
   }, [workingHours])
 
-  // 表示する日付をメモ化（曜日設定を考慮）
+  // 表示する日付をメモ化（曜日設定は考慮しない - すべての日を表示）
   const displayDates = useMemo(() => {
     if (!schedule) {
       return []
     }
     try {
-      const allowedWeekdays = schedule.available_weekdays && schedule.available_weekdays.length > 0
-        ? schedule.available_weekdays
-        : [1, 2, 3, 4, 5] // デフォルト: 月〜金
-      
-      const dates = getDayDates(startDate, viewDays).filter(date => {
-        // 日付範囲チェック
-        if (!isDateInRange(date, schedule.date_range_start, schedule.date_range_end)) {
-          return false
-        }
-        // 曜日チェック
-        const dayOfWeek = date.getDay()
-        return allowedWeekdays.includes(dayOfWeek)
-      })
+      const dates = getDayDates(startDate, viewDays).filter(date => 
+        isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
+      )
       return dates
     } catch (error) {
       return []

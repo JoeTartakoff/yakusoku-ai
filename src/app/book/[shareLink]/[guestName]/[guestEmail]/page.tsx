@@ -691,20 +691,10 @@ export default function BookingPage() {
     hourSlots.push(hour)
   }
 
-  // 曜日設定を取得（デフォルト: 月〜金）
-  const allowedWeekdays = schedule?.available_weekdays && schedule.available_weekdays.length > 0
-    ? schedule.available_weekdays
-    : [1, 2, 3, 4, 5]
-
-  const displayDates = getDayDates(startDate, viewDays).filter(date => {
-    // 日付範囲チェック
-    if (!isDateInRange(date, schedule.date_range_start, schedule.date_range_end)) {
-      return false
-    }
-    // 曜日チェック
-    const dayOfWeek = date.getDay()
-    return allowedWeekdays.includes(dayOfWeek)
-  })
+  // 表示する日付（曜日設定は考慮しない - すべての日を表示）
+  const displayDates = getDayDates(startDate, viewDays).filter(date => 
+    isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
+  )
 
   const blockHeightPx = schedule ? (schedule.time_slot_duration / 60) * 96 : 96
 
