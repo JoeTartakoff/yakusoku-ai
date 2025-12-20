@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { generateBookingUrl } from '@/utils/url-generator'
 
 interface Schedule {
   id: string
@@ -324,7 +325,10 @@ export default function ScheduleDetailPage() {
   }
 
   const copyPersonalizedLink = (shareLink: string, guestToken: string, guestName: string) => {
-    const url = `${window.location.origin}/book/${shareLink}?guest=${guestToken}`
+    const url = generateBookingUrl({
+      shareLink,
+      guestToken,
+    })
     navigator.clipboard.writeText(url)
     alert(`${guestName}様専用リンクをコピーしました！`)
   }

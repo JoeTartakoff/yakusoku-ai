@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { generateBookingUrl, generateFixedLink } from '@/utils/url-generator'
 
 interface Folder {
   id: string
@@ -239,15 +240,15 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
     const { token } = await response.json()
     console.log('✅ One-time token created:', token)
 
-    let url = `${window.location.origin}/book/${shareLink}`
-    
-    if (quickGuestInfo.name && quickGuestInfo.email) {
-      const encodedName = encodeURIComponent(quickGuestInfo.name)
-      const encodedEmail = encodeURIComponent(quickGuestInfo.email)
-      url = `${window.location.origin}/book/${shareLink}/${encodedName}/${encodedEmail}?token=${token}`
-    } else {
-      url = `${window.location.origin}/book/${shareLink}?token=${token}`
-    }
+    const guestInfo = (quickGuestInfo.name && quickGuestInfo.email) 
+      ? { name: quickGuestInfo.name, email: quickGuestInfo.email }
+      : undefined
+
+    const url = generateBookingUrl({
+      shareLink,
+      guestInfo,
+      token,
+    })
     
     navigator.clipboard.writeText(url)
     
@@ -269,42 +270,36 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
 }
 
   const copyFixedLink = (shareLink: string, isCandidateMode: boolean, isInterviewMode: boolean) => {
-    let url
+    const guestInfo = (quickGuestInfo.name && quickGuestInfo.email) 
+      ? { name: quickGuestInfo.name, email: quickGuestInfo.email }
+      : undefined
+
+    const url = generateFixedLink(shareLink, {
+      isCandidateMode,
+      isInterviewMode,
+      guestInfo,
+    })
+
     let toastType: Toast['type'] = 'blue'
     let message = ''
     
     if (isInterviewMode) {
       toastType = 'orange'
-      url = `${window.location.origin}/interview/${shareLink}`
-      
       if (quickGuestInfo.name && quickGuestInfo.email) {
-        const encodedName = encodeURIComponent(quickGuestInfo.name)
-        const encodedEmail = encodeURIComponent(quickGuestInfo.email)
-        url = `${window.location.origin}/interview/${shareLink}?name=${encodedName}&email=${encodedEmail}`
         message = `${quickGuestInfo.name}様専用候補日受取リンクをコピーしました！\nゲストが自由に候補時間を提案できます。`
       } else {
         message = '候補日受取リンクをコピーしました！\nゲストが自由に候補時間を提案できます。'
       }
     } else if (isCandidateMode) {
       toastType = 'purple'
-      url = `${window.location.origin}/candidate/${shareLink}`
-      
       if (quickGuestInfo.name && quickGuestInfo.email) {
-        const encodedName = encodeURIComponent(quickGuestInfo.name)
-        const encodedEmail = encodeURIComponent(quickGuestInfo.email)
-        url = `${window.location.origin}/candidate/${shareLink}?name=${encodedName}&email=${encodedEmail}`
         message = `${quickGuestInfo.name}様専用候補時間提示リンクをコピーしました！\nゲストは複数の候補から選択できます。`
       } else {
         message = '候補時間提示リンクをコピーしました！\nゲストは複数の候補から選択できます。'
       }
     } else {
       toastType = 'blue'
-      url = `${window.location.origin}/book/${shareLink}`
-      
       if (quickGuestInfo.name && quickGuestInfo.email) {
-        const encodedName = encodeURIComponent(quickGuestInfo.name)
-        const encodedEmail = encodeURIComponent(quickGuestInfo.email)
-        url = `${window.location.origin}/book/${shareLink}/${encodedName}/${encodedEmail}`
         message = `${quickGuestInfo.name}様専用通常予約リンクをコピーしました！\n何度でも予約可能なリンクです。`
       } else {
         message = '通常予約リンクをコピーしました！\n何度でも予約可能なリンクです。'
