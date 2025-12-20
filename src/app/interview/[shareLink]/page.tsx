@@ -482,15 +482,12 @@ export default function InterviewPage() {
           </div>
         </div>
 
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-orange-800">
-            📌 カレンダーで時間をクリックして選択してください（複数選択可）
-          </p>
-          <p className="text-xs text-orange-600 mt-1">
-            予約時間: {schedule.time_slot_duration}分 | 選択後、ドラッグで時間を調整できます
+        <div className="mb-6">
+          <p className="text-sm text-gray-600">
+            📌 カレンダーで時間をクリックして選択してください（複数選択可）　予約時間: {schedule.time_slot_duration}分
           </p>
           {selectedBlocks.length > 0 && (
-            <p className="text-xs text-orange-700 mt-2 font-medium">
+            <p className="text-xs text-gray-600 mt-2 font-medium">
               ✅ {selectedBlocks.length}個の時間を選択中
             </p>
           )}

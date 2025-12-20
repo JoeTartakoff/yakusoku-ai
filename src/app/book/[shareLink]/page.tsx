@@ -932,14 +932,9 @@ export default function BookingPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-blue-800">
-            📌 カレンダーで時間をクリックして予約してください
-          </p>
-          <p className="text-xs text-blue-600 mt-1">
-            予約時間: {schedule.time_slot_duration}分 | 選択後、ドラッグで時間を調整できます
-          </p>
-        </div>
+        <p className="text-sm text-gray-600 mb-6">
+          📌 カレンダーで時間をクリックして予約してください　予約時間: {schedule.time_slot_duration}分
+        </p>
 
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
