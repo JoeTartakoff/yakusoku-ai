@@ -833,7 +833,7 @@ export default function CandidatePage() {
                         return (
                           <div
                             key={block.id}
-                            className={`absolute bg-purple-600 text-white rounded shadow-lg flex flex-col items-center justify-center text-xs font-medium z-20 ${
+                            className={`absolute bg-purple-600 text-white rounded shadow-lg flex flex-col items-center justify-center text-xs font-medium z-20 min-w-0 ${
                               isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
                             }`}
                             style={{
@@ -845,7 +845,7 @@ export default function CandidatePage() {
                             }}
                             onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
                           >
-                            <div className="text-center relative w-full px-1">
+                            <div className="text-center relative w-full min-w-0 px-1">
                               <div className="whitespace-normal break-words">{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
                               <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
                               
