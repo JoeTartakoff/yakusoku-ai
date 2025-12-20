@@ -657,7 +657,7 @@ export default function BookingPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mb-4"></div>
           <p className="text-gray-600">読み込み中...</p>
         </div>
       </div>
@@ -885,7 +885,7 @@ export default function BookingPage() {
           {isLoadingSlots ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mb-4"></div>
                 <p className="text-gray-600">カレンダーを確認中...</p>
                 <p className="text-xs text-gray-400 mt-2">Googleカレンダーと同期しています</p>
               </div>
