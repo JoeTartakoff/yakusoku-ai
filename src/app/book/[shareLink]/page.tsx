@@ -1146,59 +1146,58 @@ export default function BookingPage() {
 
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={goToPrevDays}
-              disabled={!canGoPrev || isLoadingSlots}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ← 前の{viewDays}日
-            </button>
+            {/* 左: 月年表示 */}
+            <h2 className="text-xl font-bold text-gray-900">
+              {startDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}
+            </h2>
             
-            <div className="flex items-center gap-3">
+            {/* 中央: ナビゲーションコントロール（セグメント風） */}
+            <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
               <button
                 onClick={goToToday}
                 disabled={isLoadingSlots}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed border-r border-gray-300"
               >
                 今日
               </button>
-              
-              <h2 className="text-xl font-bold text-gray-900">
-                {startDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}
-              </h2>
-            </div>
-            
-            <div className="flex items-center gap-3">
+              <button
+                onClick={goToPrevDays}
+                disabled={!canGoPrev || isLoadingSlots}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed border-r border-gray-300"
+              >
+                &lt;
+              </button>
               <button
                 onClick={goToNextDays}
                 disabled={!canGoNext || isLoadingSlots}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                次の{viewDays}日 →
+                &gt;
               </button>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setViewDays(3)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    viewDays === 3
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  3日
-                </button>
-                <button
-                  onClick={() => setViewDays(7)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    viewDays === 7
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  7日
-                </button>
-              </div>
+            </div>
+            
+            {/* 右: 表示日数トグル */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewDays(3)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewDays === 3
+                    ? 'bg-white border border-gray-300 text-blue-600'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                3日
+              </button>
+              <button
+                onClick={() => setViewDays(7)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewDays === 7
+                    ? 'bg-white border border-gray-300 text-blue-600'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                7日
+              </button>
             </div>
           </div>
 
