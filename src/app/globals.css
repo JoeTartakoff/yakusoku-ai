@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: var(--font-noto-sans-jp), sans-serif;
 }
+
+/* クリック可能な要素にカーソルをポインターに */
+button,
+a,
+[role="button"],
+[onclick],
+label[for] {
+  cursor: pointer;
+}
