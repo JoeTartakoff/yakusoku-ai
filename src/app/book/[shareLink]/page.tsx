@@ -955,8 +955,8 @@ export default function BookingPage() {
                 今日
               </button>
               
-              <h2 className="text-lg font-medium text-gray-900">
-                {startDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+              <h2 className="text-xl font-medium text-gray-900">
+                {startDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}
               </h2>
             </div>
             
@@ -986,7 +986,7 @@ export default function BookingPage() {
               <table className="w-full border-collapse select-none">
                 <thead>
                   <tr>
-                    <th className="border border-gray-300 bg-gray-50 p-2 text-xs font-medium text-gray-500 w-20">
+                    <th className="border border-gray-300 bg-gray-50 p-2 text-sm font-medium text-gray-500 w-20">
                       時間
                     </th>
                     {displayDates.map((date, idx) => {
@@ -994,13 +994,9 @@ export default function BookingPage() {
                       const isToday = date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
                       
                       return (
-                        <th key={idx} className="border border-gray-300 bg-gray-50 p-2 text-sm font-medium text-gray-900">
-                          <div>
-                            {date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-                          </div>
-                          <div className="text-xs text-gray-500 flex items-center justify-center gap-1">
-                            {date.toLocaleDateString('ja-JP', { weekday: 'short' })}
-                            {isToday && <span className="text-red-500 text-lg leading-none">●</span>}
+                        <th key={idx} className="border border-gray-300 bg-gray-50 p-2">
+                          <div className={`text-base font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                            {date.getDate()}({date.toLocaleDateString('ja-JP', { weekday: 'short' })})
                           </div>
                         </th>
                       )
@@ -1011,7 +1007,7 @@ export default function BookingPage() {
                   {hourSlots.map((hour) => {
                     return (
                       <tr key={hour}>
-                        <td className="border border-gray-300 bg-gray-50 p-2 text-xs text-gray-600 text-center align-top">
+                        <td className="border border-gray-300 bg-gray-50 p-2 text-sm text-gray-600 text-center align-top font-medium">
                           {String(hour).padStart(2, '0')}:00
                         </td>
                         {displayDates.map((date, dateIdx) => {
@@ -1110,7 +1106,7 @@ export default function BookingPage() {
                                       }}
                                       style={{
                                         fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-                                        fontSize: '0.9375rem',
+                                        fontSize: '1rem',
                                         letterSpacing: '0.025em',
                                       }}
                                       onMouseEnter={(e) => {
