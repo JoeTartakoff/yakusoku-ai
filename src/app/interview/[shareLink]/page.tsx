@@ -628,7 +628,7 @@ export default function InterviewPage() {
                                 return (
                                   <div
                                     key={block.id}
-                                    className={`absolute left-1 right-1 bg-orange-600 text-white rounded shadow-lg flex flex-col items-center justify-center text-xs font-medium z-20 min-w-0 ${
+                                    className={`absolute left-1 right-1 bg-orange-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
                                       isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
                                     }`}
                                     style={{
@@ -637,8 +637,8 @@ export default function InterviewPage() {
                                     }}
                                     onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
                                   >
-                                    <div className="text-center relative w-full min-w-0 px-1">
-                                      <div className="whitespace-normal break-words">{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
+                                    <div className="text-center relative w-full px-1">
+                                      <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
                                       <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
                                       
                                       <button
