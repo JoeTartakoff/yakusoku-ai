@@ -471,7 +471,7 @@ export default function ScheduleDetailPage() {
                   {response.is_confirmed && response.confirmed_slot ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm text-green-800">
+                        <p className="text-sm text-green-800 whitespace-normal break-words">
                           確定時間: {new Date(response.confirmed_slot.date).toLocaleDateString('ja-JP')} {response.confirmed_slot.startTime.slice(0, 5)} - {response.confirmed_slot.endTime.slice(0, 5)}
                         </p>
                         <button
@@ -503,7 +503,7 @@ export default function ScheduleDetailPage() {
                             }`}>
                               {new Date(slot.date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', weekday: 'short' })}
                             </div>
-                            <div className={`text-sm ${
+                            <div className={`text-sm whitespace-normal break-words ${
                               schedule.is_interview_mode ? 'text-orange-700' : 'text-purple-700'
                             }`}>
                               {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}

@@ -638,7 +638,7 @@ export default function InterviewPage() {
                                     onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
                                   >
                                     <div className="text-center relative w-full">
-                                      <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
+                                      <div className="whitespace-normal break-words">{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
                                       <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
                                       
                                       <button
@@ -704,7 +704,7 @@ export default function InterviewPage() {
                 <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
                   {selectedBlocks.map((block, idx) => (
                     <div key={block.id} className="flex items-center justify-between bg-white p-2 rounded border border-orange-200">
-                      <p className="text-xs text-orange-700">
+                      <p className="text-xs text-orange-700 whitespace-normal break-words">
                         {new Date(block.date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })} {block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}
                       </p>
                       <button

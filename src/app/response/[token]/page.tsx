@@ -203,7 +203,7 @@ export default function ResponsePage() {
                     weekday: 'long',
                   })}
                 </p>
-<p className="text-lg font-bold text-green-700 mt-1">
+<p className="text-lg font-bold text-green-700 mt-1 whitespace-normal break-words">
   {response.confirmed_slot.startTime.slice(0, 5)} - {response.confirmed_slot.endTime.slice(0, 5)}
 </p>
               </div>
@@ -235,7 +235,7 @@ export default function ResponsePage() {
                         weekday: 'long',
                       })}
                     </p>
-<p className="text-lg font-bold text-purple-700 mb-3">
+<p className="text-lg font-bold text-purple-700 mb-3 whitespace-normal break-words">
   {slot.startTime.slice(0, 5)} - {slot.endTime.slice(0, 5)}
 </p>
                     

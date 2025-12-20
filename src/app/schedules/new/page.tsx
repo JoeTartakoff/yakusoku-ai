@@ -1195,7 +1195,7 @@ export default function NewSchedulePage() {
                                               onMouseDown={(e) => handleBlockMouseDown(block.id, e)}
                                             >
                                               <div className="text-center relative w-full">
-                                                <div>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
+                                                <div className="whitespace-normal break-words">{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
                                                 <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
                                                 
                                                 {/* ⭐ 삭제 버튼 (항상 표시) */}

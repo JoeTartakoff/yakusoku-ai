@@ -1098,7 +1098,7 @@ export default function BookingPage() {
                     weekday: 'long'
                   })}
                 </p>
-                <p className="text-lg font-bold text-blue-900 mt-1">
+                <p className="text-lg font-bold text-blue-900 mt-1 whitespace-normal break-words">
                   {selectedBlock.startTime.slice(0, 5)} - {selectedBlock.endTime.slice(0, 5)}
                 </p>
               </div>
