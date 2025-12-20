@@ -1221,7 +1221,7 @@ export default function EditSchedulePage() {
                                           return (
                                             <div
                                               key={block.id}
-                                              className={`absolute left-1 right-1 bg-purple-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 group ${
+                                              className={`absolute left-1 right-1 bg-purple-600 text-white rounded shadow-lg flex flex-col items-center justify-center text-xs font-medium z-20 group ${
                                                 isDragging && dragBlockId === block.id ? 'cursor-grabbing' : 'cursor-move'
                                               }`}
                                               style={{
@@ -1230,7 +1230,7 @@ export default function EditSchedulePage() {
                                               }}
                                               onMouseDown={(e) => handleBlockMouseDown(block.id, e)}
                                             >
-                                              <div className="text-center relative w-full">
+                                              <div className="text-center relative w-full px-1">
                                                 <div className="whitespace-normal break-words">{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</div>
                                                 <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
                                                 

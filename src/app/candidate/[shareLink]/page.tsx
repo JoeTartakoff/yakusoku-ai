@@ -833,7 +833,7 @@ export default function CandidatePage() {
                         return (
                           <div
                             key={block.id}
-                            className={`absolute bg-purple-600 text-white rounded shadow-lg flex items-center justify-center text-xs font-medium z-20 ${
+                            className={`absolute bg-purple-600 text-white rounded shadow-lg flex flex-col items-center justify-center text-xs font-medium z-20 ${
                               isDraggingThis ? 'cursor-grabbing' : 'cursor-move'
                             }`}
                             style={{
