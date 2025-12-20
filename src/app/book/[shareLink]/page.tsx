@@ -1079,6 +1079,11 @@ export default function BookingPage() {
                                 const slotBottom = Math.min(96, (slotEndMinutes - hourStartMinutes) / 60 * 96)
                                 const slotHeight = slotBottom - slotTop
                                 
+                                // ボタン間の余白を確保（各ボタンに上下に4pxの余白）
+                                const BUTTON_GAP = 4
+                                const adjustedTop = slotTop + BUTTON_GAP
+                                const adjustedHeight = Math.max(slotHeight - (BUTTON_GAP * 2), 32)
+                                
                                 const isSelected = selectedBlock && 
                                                   selectedBlock.date === slot.date &&
                                                   selectedBlock.startTime === slot.start_time &&
@@ -1089,8 +1094,8 @@ export default function BookingPage() {
                                     key={`slot-${slotIdx}`}
                                     className="absolute left-1 right-1 z-20 group"
                                     style={{
-                                      top: `${slotTop}px`,
-                                      height: `${slotHeight}px`,
+                                      top: `${adjustedTop}px`,
+                                      height: `${adjustedHeight}px`,
                                     }}
                                   >
                                     <button
