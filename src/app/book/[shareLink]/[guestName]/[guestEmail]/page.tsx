@@ -337,6 +337,7 @@ export default function BookingPage() {
               setGuestInfo({
                 name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
                 email: user.email || '',
+                comment: '',
               })
             }
             

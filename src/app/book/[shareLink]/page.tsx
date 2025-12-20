@@ -593,6 +593,7 @@ export default function BookingPage() {
             setGuestInfo({
               name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
               email: user.email || '',
+              comment: '',
             })
             
             // ⭐ トークン保存とスロット取得を並列実行（トークン保存は非同期で完了を待たない）
