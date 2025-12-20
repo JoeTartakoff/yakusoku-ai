@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -81,36 +81,153 @@ function timeToPixelPosition(time: string): number {
   return (relativeMinutes / 60) * 96
 }
 
-function groupOverlappingSlots(slots: AvailabilitySlot[]): AvailabilitySlot[][] {
-  const groups: AvailabilitySlot[][] = []
-  const used = new Set<number>()
-  
-  slots.forEach((slot, index) => {
-    if (used.has(index)) return
-    
-    const group = [slot]
-    used.add(index)
-    
-    slots.forEach((otherSlot, otherIndex) => {
-      if (used.has(otherIndex)) return
-      
-      const slotStart = timeToMinutes(slot.start_time)
-      const slotEnd = timeToMinutes(slot.end_time)
-      const otherStart = timeToMinutes(otherSlot.start_time)
-      const otherEnd = timeToMinutes(otherSlot.end_time)
-      
-      // 時間的に重複しているかチェック
-      if (slotStart < otherEnd && slotEnd > otherStart) {
-        group.push(otherSlot)
-        used.add(otherIndex)
-      }
-    })
-    
-    groups.push(group)
-  })
-  
-  return groups
+// カレンダーセルコンポーネント（メモ化）
+interface CalendarCellProps {
+  date: Date
+  hour: number
+  slotsForDate: AvailabilitySlot[]
+  bookingsForDate: Booking[]
+  selectedBlock: TimeBlock | null
+  onSlotClick: (slot: AvailabilitySlot) => void
 }
+
+const CalendarCell = memo(function CalendarCell({
+  date,
+  hour,
+  slotsForDate,
+  bookingsForDate,
+  selectedBlock,
+  onSlotClick,
+}: CalendarCellProps) {
+  const dateStr = date.toISOString().split('T')[0]
+  const dayOfWeek = date.getDay()
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+  
+  // 時間帯別スロットをメモ化
+  const slotsInHour = useMemo(() => {
+    const hourStartMinutes = hour * 60
+    const hourEndMinutes = (hour + 1) * 60
+    
+    return slotsForDate.filter(slot => {
+      const slotStartMinutes = timeToMinutes(slot.start_time)
+      const slotEndMinutes = timeToMinutes(slot.end_time)
+      return (
+        (slotStartMinutes >= hourStartMinutes && slotStartMinutes < hourEndMinutes) ||
+        (slotEndMinutes > hourStartMinutes && slotEndMinutes <= hourEndMinutes) ||
+        (slotStartMinutes < hourStartMinutes && slotEndMinutes > hourEndMinutes)
+      )
+    })
+  }, [slotsForDate, hour])
+  
+  const hourStartMinutes = hour * 60
+  const hourEndMinutes = (hour + 1) * 60
+
+  return (
+    <td 
+      className={`border border-gray-300 p-0 relative ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}
+      style={{ height: '96px' }}
+    >
+      {/* 予約済み時間を表示（白い背景） */}
+      {bookingsForDate.map((booking, bookingIdx) => {
+        const bookingStartMinutes = timeToMinutes(booking.start_time)
+        const bookingEndMinutes = timeToMinutes(booking.end_time)
+        
+        // この時間帯に含まれる予約のみ表示
+        if (bookingStartMinutes >= hourEndMinutes || bookingEndMinutes <= hourStartMinutes) {
+          return null
+        }
+        
+        const bookingTop = Math.max(0, (bookingStartMinutes - hourStartMinutes) / 60 * 96)
+        const bookingBottom = Math.min(96, (bookingEndMinutes - hourStartMinutes) / 60 * 96)
+        const bookingHeight = bookingBottom - bookingTop
+        
+        return (
+          <div
+            key={`booking-${bookingIdx}`}
+            className={`absolute left-0 right-0 border border-gray-300 rounded z-10 ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}
+            style={{
+              top: `${bookingTop}px`,
+              height: `${bookingHeight}px`
+            }}
+          />
+        )
+      })}
+      
+      {/* 利用可能スロットをボタンスタイルで表示 */}
+      {slotsInHour.map((slot, slotIdx) => {
+        const slotStartMinutes = timeToMinutes(slot.start_time)
+        const slotEndMinutes = timeToMinutes(slot.end_time)
+        
+        const slotTop = Math.max(0, (slotStartMinutes - hourStartMinutes) / 60 * 96)
+        const slotBottom = Math.min(96, (slotEndMinutes - hourStartMinutes) / 60 * 96)
+        const slotHeight = slotBottom - slotTop
+        
+        // ボタン間の余白を確保（各ボタンに上下に4pxの余白）
+        const BUTTON_GAP = 4
+        const adjustedTop = slotTop + BUTTON_GAP
+        const adjustedHeight = Math.max(slotHeight - (BUTTON_GAP * 2), 32)
+        
+        const isSelected = selectedBlock && 
+                          selectedBlock.date === slot.date &&
+                          selectedBlock.startTime === slot.start_time &&
+                          selectedBlock.endTime === slot.end_time
+        
+        return (
+          <div
+            key={`slot-${slotIdx}`}
+            className="absolute left-1 right-1 z-20 group"
+            style={{
+              top: `${adjustedTop}px`,
+              height: `${adjustedHeight}px`,
+            }}
+          >
+            <button
+              className={`w-full h-full rounded-lg border-2 shadow-sm cursor-pointer transition-all duration-200 flex items-center justify-center font-medium ${
+                isSelected
+                  ? 'bg-blue-600 border-blue-600 text-white ring-2 ring-blue-400 ring-offset-1'
+                  : 'bg-white border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white hover:shadow-md'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSlotClick(slot)
+              }}
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+                fontSize: '1rem',
+                letterSpacing: '0.025em',
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected) {
+                  const btn = e.currentTarget
+                  const timeSpan = btn.querySelector('.time-text') as HTMLElement
+                  const actionSpan = btn.querySelector('.action-text') as HTMLElement
+                  if (timeSpan) timeSpan.style.display = 'none'
+                  if (actionSpan) actionSpan.style.display = 'inline'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected) {
+                  const btn = e.currentTarget
+                  const timeSpan = btn.querySelector('.time-text') as HTMLElement
+                  const actionSpan = btn.querySelector('.action-text') as HTMLElement
+                  if (timeSpan) timeSpan.style.display = 'inline'
+                  if (actionSpan) actionSpan.style.display = 'none'
+                }
+              }}
+            >
+              <span className="time-text">
+                {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+              </span>
+              <span className="action-text" style={{ display: 'none' }}>
+                予約する
+              </span>
+            </button>
+          </div>
+        )
+      })}
+    </td>
+  )
+})
 
 export default function BookingPage() {
   const params = useParams()
@@ -607,7 +724,7 @@ export default function BookingPage() {
     return !hasOverlap
   }
 
-  const handleSlotClick = (slot: AvailabilitySlot) => {
+  const handleSlotClick = useCallback((slot: AvailabilitySlot) => {
     if (!schedule) return
     
     setSelectedBlock({
@@ -617,13 +734,12 @@ export default function BookingPage() {
     })
     
     setShowPopup(true)
-  }
+  }, [schedule])
 
-
-  const cancelSelection = () => {
+  const cancelSelection = useCallback(() => {
     setSelectedBlock(null)
     setShowPopup(false)
-  }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -724,7 +840,7 @@ export default function BookingPage() {
     }
   }
 
-  const goToPrev3Days = () => {
+  const goToPrev3Days = useCallback(() => {
     if (!schedule) return
     
     const prevStart = new Date(startDate)
@@ -733,9 +849,9 @@ export default function BookingPage() {
     if (isDateInRange(prevStart, schedule.date_range_start, schedule.date_range_end)) {
       setStartDate(prevStart)
     }
-  }
+  }, [schedule, startDate])
 
-  const goToNext3Days = () => {
+  const goToNext3Days = useCallback(() => {
     if (!schedule) return
     
     const nextStart = new Date(startDate)
@@ -744,11 +860,11 @@ export default function BookingPage() {
     if (isDateInRange(nextStart, schedule.date_range_start, schedule.date_range_end)) {
       setStartDate(nextStart)
     }
-  }
+  }, [schedule, startDate])
 
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     setStartDate(new Date())
-  }
+  }, [])
 
   const canGoPrev = schedule ? isDateInRange(
     new Date(startDate.getTime() - 3 * 24 * 60 * 60 * 1000),
@@ -824,14 +940,45 @@ export default function BookingPage() {
     )
   }
 
-  const hourSlots: number[] = []
-  for (let hour = 9; hour <= 17; hour++) {
-    hourSlots.push(hour)
-  }
+  // 時間スロットの配列をメモ化
+  const hourSlots = useMemo(() => {
+    const slots: number[] = []
+    for (let hour = 9; hour <= 17; hour++) {
+      slots.push(hour)
+    }
+    return slots
+  }, [])
 
-  const displayDates = getThreeDayDates(startDate).filter(date => 
-    isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
-  )
+  // 表示する日付をメモ化
+  const displayDates = useMemo(() => {
+    if (!schedule) return []
+    return getThreeDayDates(startDate).filter(date => 
+      isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
+    )
+  }, [startDate, schedule])
+
+  // スロットを日付別Mapに変換（O(n) → O(1)アクセス）
+  const slotsByDate = useMemo(() => {
+    const map = new Map<string, AvailabilitySlot[]>()
+    availableSlots.forEach(slot => {
+      const existing = map.get(slot.date) || []
+      const sorted = [...existing, slot].sort((a, b) => 
+        timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
+      )
+      map.set(slot.date, sorted)
+    })
+    return map
+  }, [availableSlots])
+
+  // 予約を日付別Mapに変換
+  const bookingsByDate = useMemo(() => {
+    const map = new Map<string, Booking[]>()
+    bookings.forEach(booking => {
+      const existing = map.get(booking.booking_date) || []
+      map.set(booking.booking_date, [...existing, booking])
+    })
+    return map
+  }, [bookings])
 
   const blockHeightPx = schedule ? (schedule.time_slot_duration / 60) * 96 : 96
 
@@ -1024,135 +1171,23 @@ export default function BookingPage() {
                         </td>
                         {displayDates.map((date, dateIdx) => {
                           const dateStr = date.toISOString().split('T')[0]
-                          const dayOfWeek = date.getDay()
-                          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0=日曜日, 6=土曜日
                           
-                          // この日付の利用可能スロットを取得
-                          const slotsForDate = availableSlots
-                            .filter(slot => slot.date === dateStr)
-                            .sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time))
+                          // Mapから日付別スロットを取得（O(1)アクセス）
+                          const slotsForDate = slotsByDate.get(dateStr) || []
                           
-                          // この時間帯（hour）に含まれるスロットを取得
-                          const hourStartMinutes = hour * 60
-                          const hourEndMinutes = (hour + 1) * 60
-                          const slotsInHour = slotsForDate.filter(slot => {
-                            const slotStartMinutes = timeToMinutes(slot.start_time)
-                            const slotEndMinutes = timeToMinutes(slot.end_time)
-                            return (
-                              (slotStartMinutes >= hourStartMinutes && slotStartMinutes < hourEndMinutes) ||
-                              (slotEndMinutes > hourStartMinutes && slotEndMinutes <= hourEndMinutes) ||
-                              (slotStartMinutes < hourStartMinutes && slotEndMinutes > hourEndMinutes)
-                            )
-                          })
-                          
-                          // この日付の予約済み時間を取得
-                          const bookingsForDate = bookings.filter(booking => booking.booking_date === dateStr)
+                          // Mapから日付別予約を取得（O(1)アクセス）
+                          const bookingsForDate = bookingsByDate.get(dateStr) || []
 
                           return (
-                            <td 
-                              key={dateIdx} 
-                              className={`border border-gray-300 p-0 relative ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}
-                              style={{ height: '96px' }}
-                            >
-                              {/* 予約済み時間を表示（白い背景） */}
-                              {bookingsForDate.map((booking, bookingIdx) => {
-                                const bookingStartMinutes = timeToMinutes(booking.start_time)
-                                const bookingEndMinutes = timeToMinutes(booking.end_time)
-                                
-                                // この時間帯に含まれる予約のみ表示
-                                if (bookingStartMinutes >= hourEndMinutes || bookingEndMinutes <= hourStartMinutes) {
-                                  return null
-                                }
-                                
-                                const bookingTop = Math.max(0, (bookingStartMinutes - hourStartMinutes) / 60 * 96)
-                                const bookingBottom = Math.min(96, (bookingEndMinutes - hourStartMinutes) / 60 * 96)
-                                const bookingHeight = bookingBottom - bookingTop
-                                
-                                return (
-                                  <div
-                                    key={`booking-${bookingIdx}`}
-                                    className={`absolute left-0 right-0 border border-gray-300 rounded z-10 ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}
-                                    style={{
-                                      top: `${bookingTop}px`,
-                                      height: `${bookingHeight}px`
-                                    }}
-                                  />
-                                )
-                              })}
-                              
-                              {/* 利用可能スロットをボタンスタイルで表示 */}
-                              {slotsInHour.map((slot, slotIdx) => {
-                                const slotStartMinutes = timeToMinutes(slot.start_time)
-                                const slotEndMinutes = timeToMinutes(slot.end_time)
-                                
-                                const slotTop = Math.max(0, (slotStartMinutes - hourStartMinutes) / 60 * 96)
-                                const slotBottom = Math.min(96, (slotEndMinutes - hourStartMinutes) / 60 * 96)
-                                const slotHeight = slotBottom - slotTop
-                                
-                                // ボタン間の余白を確保（各ボタンに上下に4pxの余白）
-                                const BUTTON_GAP = 4
-                                const adjustedTop = slotTop + BUTTON_GAP
-                                const adjustedHeight = Math.max(slotHeight - (BUTTON_GAP * 2), 32)
-                                
-                                const isSelected = selectedBlock && 
-                                                  selectedBlock.date === slot.date &&
-                                                  selectedBlock.startTime === slot.start_time &&
-                                                  selectedBlock.endTime === slot.end_time
-                                
-                                return (
-                                  <div
-                                    key={`slot-${slotIdx}`}
-                                    className="absolute left-1 right-1 z-20 group"
-                                    style={{
-                                      top: `${adjustedTop}px`,
-                                      height: `${adjustedHeight}px`,
-                                    }}
-                                  >
-                                    <button
-                                      className={`w-full h-full rounded-lg border-2 shadow-sm cursor-pointer transition-all duration-200 flex items-center justify-center font-medium ${
-                                        isSelected
-                                          ? 'bg-blue-600 border-blue-600 text-white ring-2 ring-blue-400 ring-offset-1'
-                                          : 'bg-white border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white hover:shadow-md'
-                                      }`}
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleSlotClick(slot)
-                                      }}
-                                      style={{
-                                        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-                                        fontSize: '1rem',
-                                        letterSpacing: '0.025em',
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        if (!isSelected) {
-                                          const btn = e.currentTarget
-                                          const timeSpan = btn.querySelector('.time-text') as HTMLElement
-                                          const actionSpan = btn.querySelector('.action-text') as HTMLElement
-                                          if (timeSpan) timeSpan.style.display = 'none'
-                                          if (actionSpan) actionSpan.style.display = 'inline'
-                                        }
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        if (!isSelected) {
-                                          const btn = e.currentTarget
-                                          const timeSpan = btn.querySelector('.time-text') as HTMLElement
-                                          const actionSpan = btn.querySelector('.action-text') as HTMLElement
-                                          if (timeSpan) timeSpan.style.display = 'inline'
-                                          if (actionSpan) actionSpan.style.display = 'none'
-                                        }
-                                      }}
-                                    >
-                                      <span className="time-text">
-                                        {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
-                                      </span>
-                                      <span className="action-text" style={{ display: 'none' }}>
-                                        予約する
-                                      </span>
-                                    </button>
-                                  </div>
-                                )
-                              })}
-                            </td>
+                            <CalendarCell
+                              key={dateIdx}
+                              date={date}
+                              hour={hour}
+                              slotsForDate={slotsForDate}
+                              bookingsForDate={bookingsForDate}
+                              selectedBlock={selectedBlock}
+                              onSlotClick={handleSlotClick}
+                            />
                           )
                         })}
                       </tr>
