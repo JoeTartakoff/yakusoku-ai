@@ -102,13 +102,9 @@ const CalendarCell = memo(function CalendarCell({
   // #region agent log
   fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:94',message:'CalendarCell render entry',data:{dateStr:date?.toISOString(),hour,slotsForDateIsArray:Array.isArray(slotsForDate),slotsForDateLength:slotsForDate?.length,bookingsForDateIsArray:Array.isArray(bookingsForDate),bookingsForDateLength:bookingsForDate?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
   // #endregion
-  try {
-    const dateStr = date.toISOString().split('T')[0]
-    const dayOfWeek = date.getDay()
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-    
-    // 時間帯別スロットをメモ化
-    const slotsInHour = useMemo(() => {
+  
+  // 時間帯別スロットをメモ化（フックはtryブロックの外に配置）
+  const slotsInHour = useMemo(() => {
       // #region agent log
       fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CalendarCell:107',message:'slotsInHour useMemo entry',data:{slotsForDateLength:slotsForDate?.length,slotsForDateIsArray:Array.isArray(slotsForDate),hour},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
@@ -142,7 +138,11 @@ const CalendarCell = memo(function CalendarCell({
         return []
       }
     }, [slotsForDate, hour])
-    
+  
+  try {
+    const dateStr = date.toISOString().split('T')[0]
+    const dayOfWeek = date.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
     const hourStartMinutes = hour * 60
     const hourEndMinutes = (hour + 1) * 60
     
