@@ -41,9 +41,9 @@ interface Booking {
   end_time: string
 }
 
-function getThreeDayDates(center: Date): Date[] {
+function getDayDates(center: Date, days: number): Date[] {
   const dates: Date[] = []
-  for (let i = 0; i <= 2; i++) {
+  for (let i = 0; i < days; i++) {
     const date = new Date(center)
     date.setDate(center.getDate() + i)
     dates.push(date)
@@ -130,6 +130,7 @@ export default function BookingPage() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [isPrefilledGuest, setIsPrefilledGuest] = useState(false)
   const [startDate, setStartDate] = useState<Date>(new Date())
+  const [viewDays, setViewDays] = useState<3 | 7>(3)
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const initRef = useRef(false)
@@ -578,22 +579,22 @@ export default function BookingPage() {
     }
   }
 
-  const goToPrev3Days = () => {
+  const goToPrevDays = () => {
     if (!schedule) return
     
     const prevStart = new Date(startDate)
-    prevStart.setDate(startDate.getDate() - 3)
+    prevStart.setDate(startDate.getDate() - viewDays)
     
     if (isDateInRange(prevStart, schedule.date_range_start, schedule.date_range_end)) {
       setStartDate(prevStart)
     }
   }
 
-  const goToNext3Days = () => {
+  const goToNextDays = () => {
     if (!schedule) return
     
     const nextStart = new Date(startDate)
-    nextStart.setDate(startDate.getDate() + 3)
+    nextStart.setDate(startDate.getDate() + viewDays)
     
     if (isDateInRange(nextStart, schedule.date_range_start, schedule.date_range_end)) {
       setStartDate(nextStart)
@@ -605,13 +606,13 @@ export default function BookingPage() {
   }
 
   const canGoPrev = schedule ? isDateInRange(
-    new Date(startDate.getTime() - 3 * 24 * 60 * 60 * 1000),
+    new Date(startDate.getTime() - viewDays * 24 * 60 * 60 * 1000),
     schedule.date_range_start,
     schedule.date_range_end
   ) : false
 
   const canGoNext = schedule ? isDateInRange(
-    new Date(startDate.getTime() + 3 * 24 * 60 * 60 * 1000),
+    new Date(startDate.getTime() + viewDays * 24 * 60 * 60 * 1000),
     schedule.date_range_start,
     schedule.date_range_end
   ) : false
@@ -644,7 +645,7 @@ export default function BookingPage() {
     hourSlots.push(hour)
   }
 
-  const displayDates = getThreeDayDates(startDate).filter(date => 
+  const displayDates = getDayDates(startDate, viewDays).filter(date => 
     isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
   )
 
@@ -763,11 +764,11 @@ export default function BookingPage() {
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <button
-              onClick={goToPrev3Days}
+              onClick={goToPrevDays}
               disabled={!canGoPrev || isLoadingSlots}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ← 前の3日
+              ← 前の{viewDays}日
             </button>
             
             <div className="flex items-center gap-3">
@@ -784,13 +785,38 @@ export default function BookingPage() {
               </h2>
             </div>
             
-            <button
-              onClick={goToNext3Days}
-              disabled={!canGoNext || isLoadingSlots}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              次の3日 →
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={goToNextDays}
+                disabled={!canGoNext || isLoadingSlots}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                次の{viewDays}日 →
+              </button>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setViewDays(3)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    viewDays === 3
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}
+                >
+                  3日
+                </button>
+                <button
+                  onClick={() => setViewDays(7)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    viewDays === 7
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}
+                >
+                  7日
+                </button>
+              </div>
+            </div>
           </div>
 
           {isLoadingSlots ? (
