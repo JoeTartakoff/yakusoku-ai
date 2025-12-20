@@ -6,8 +6,10 @@ const STATIC_CACHE = [
   '/',
   '/offline.html',
   '/manifest.json',
+  '/favicon.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/apple-touch-icon.png',
 ]
 
 // 설치 이벤트: 정적 파일 캐싱
@@ -18,7 +20,15 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching static files')
-        return cache.addAll(STATIC_CACHE)
+        // 各ファイルを個別にキャッシュし、エラーがあっても続行
+        return Promise.allSettled(
+          STATIC_CACHE.map(url => 
+            cache.add(url).catch(err => {
+              console.warn(`[SW] Failed to cache ${url}:`, err)
+              return null
+            })
+          )
+        )
       })
       .then(() => self.skipWaiting())
   )
