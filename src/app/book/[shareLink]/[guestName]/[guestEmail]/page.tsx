@@ -759,9 +759,6 @@ export default function BookingPage() {
       {/* メインコンテンツ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        <p className="text-sm text-gray-600 mb-6">
-          📌 カレンダーで時間をクリックして予約してください　予約時間: {schedule.time_slot_duration}分
-        </p>
 
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
@@ -782,7 +779,7 @@ export default function BookingPage() {
                 今日
               </button>
               
-              <h2 className="text-xl font-medium text-gray-900">
+              <h2 className="text-xl font-bold text-gray-900">
                 {startDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}
               </h2>
             </div>
@@ -820,7 +817,7 @@ export default function BookingPage() {
                       
                       return (
                         <th key={idx} className="border border-gray-300 bg-gray-50 p-2">
-                          <div className={`text-base font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                          <div className={`text-base font-bold ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
                             {date.getDate()}({date.toLocaleDateString('ja-JP', { weekday: 'short' })})
                           </div>
                         </th>
