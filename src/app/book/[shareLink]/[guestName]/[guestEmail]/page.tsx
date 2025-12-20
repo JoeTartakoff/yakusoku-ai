@@ -1012,7 +1012,7 @@ export default function BookingPage() {
                                     }}
                                   >
                                     <button
-                                      className={`w-full h-full rounded-lg border-2 shadow-sm cursor-pointer transition-all duration-200 flex items-center justify-center font-medium ${
+                                      className={`w-full h-full rounded-lg border-2 shadow-sm cursor-pointer transition-all duration-200 flex items-center justify-center font-medium min-w-0 ${
                                         isSelected
                                           ? 'bg-blue-600 border-blue-600 text-white ring-2 ring-blue-400 ring-offset-1'
                                           : 'bg-white border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white hover:shadow-md'
@@ -1045,7 +1045,7 @@ export default function BookingPage() {
                                         }
                                       }}
                                     >
-                                      <span className="time-text whitespace-nowrap">
+                                      <span className="time-text whitespace-normal break-words min-w-0">
                                         {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                                       </span>
                                       <span className="action-text" style={{ display: 'none' }}>

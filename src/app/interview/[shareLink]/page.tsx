@@ -625,11 +625,6 @@ export default function InterviewPage() {
                                 const blockTopPosition = timeToPixelPosition(block.startTime) - (blockStartHour - 9) * 96
                                 const isDraggingThis = draggingBlockIndex === blockIdx
 
-                                const startMinutes = timeToMinutes(block.startTime)
-                                const endMinutes = timeToMinutes(block.endTime)
-                                const durationMinutes = endMinutes - startMinutes
-                                const isOneHourOrMore = durationMinutes >= 60
-
                                 return (
                                   <div
                                     key={block.id}
@@ -643,15 +638,8 @@ export default function InterviewPage() {
                                     onMouseDown={(e) => handleBlockMouseDown(e, blockIdx)}
                                   >
                                     <div className="text-center relative w-full px-1">
-                                      <div>
-                                        {isOneHourOrMore ? (
-                                          <>
-                                            <div>{block.startTime.slice(0, 5)} -</div>
-                                            <div>{block.endTime.slice(0, 5)}</div>
-                                          </>
-                                        ) : (
-                                          <>{block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}</>
-                                        )}
+                                      <div className="whitespace-normal break-words">
+                                        {block.startTime.slice(0, 5)} - {block.endTime.slice(0, 5)}
                                       </div>
                                       <div className="text-[10px] opacity-80 mt-1">ドラッグで調整</div>
                                       
