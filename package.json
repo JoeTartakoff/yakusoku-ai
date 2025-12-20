@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy:check": "npm run lint && npm run build",
+    "deploy:push": "git push origin main",
+    "deploy": "npm run deploy:check && npm run deploy:push"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
