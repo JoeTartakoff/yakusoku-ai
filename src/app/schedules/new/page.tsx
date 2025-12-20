@@ -105,6 +105,11 @@ export default function NewSchedulePage() {
   })
   const [hasBreakTime, setHasBreakTime] = useState(true)
 
+  const [workingHoursSettings, setWorkingHoursSettings] = useState({
+    startTime: '09:00',
+    endTime: '18:00',
+  })
+
   const [availableTimeSlots, setAvailableTimeSlots] = useState<Array<{
     date: string
     startTime: string
@@ -287,6 +292,16 @@ export default function NewSchedulePage() {
   const isHalfHourAvailable = (date: string, startTime: string): boolean => {
     const startMinutes = timeToMinutes(startTime)
     const endMinutes = startMinutes + 30
+    
+    // ⭐ 営業時間外の場合は選択不可
+    if (scheduleMode === 'normal' || scheduleMode === 'candidate') {
+      const workingStart = timeToMinutes(workingHoursSettings.startTime)
+      const workingEnd = timeToMinutes(workingHoursSettings.endTime)
+      
+      if (startMinutes < workingStart || endMinutes > workingEnd) {
+        return false
+      }
+    }
     
     return availableTimeSlots.some(slot => 
       slot.date === date &&
@@ -571,6 +586,8 @@ export default function NewSchedulePage() {
           interview_time_end: scheduleMode === 'interview' ? interviewTimeSettings.endTime : null,
           interview_break_start: scheduleMode === 'interview' && hasBreakTime ? interviewTimeSettings.breakStart : null,
           interview_break_end: scheduleMode === 'interview' && hasBreakTime ? interviewTimeSettings.breakEnd : null,
+          working_hours_start: (scheduleMode === 'normal' || scheduleMode === 'candidate') ? workingHoursSettings.startTime : null,
+          working_hours_end: (scheduleMode === 'normal' || scheduleMode === 'candidate') ? workingHoursSettings.endTime : null,
           assignment_method: isTeamSchedule ? 'round_robin' : null,
           create_meet_link: createMeetLink,
         })
@@ -945,6 +962,40 @@ export default function NewSchedulePage() {
                 <option value={360}>6時間</option>
               </select>
             </div>
+
+            {(scheduleMode === 'normal' || scheduleMode === 'candidate') && (
+              <div className="space-y-3 bg-blue-50 p-4 rounded-md border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  対応可能な時間帯を設定してください。
+                </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      営業開始時間
+                    </label>
+                    <input
+                      type="time"
+                      value={workingHoursSettings.startTime}
+                      onChange={(e) => setWorkingHoursSettings({ ...workingHoursSettings, startTime: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      営業終了時間
+                    </label>
+                    <input
+                      type="time"
+                      value={workingHoursSettings.endTime}
+                      onChange={(e) => setWorkingHoursSettings({ ...workingHoursSettings, endTime: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {scheduleMode === 'candidate' && (
               <div className="space-y-3 bg-purple-50 p-4 rounded-md border border-purple-200">

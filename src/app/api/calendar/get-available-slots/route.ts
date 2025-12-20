@@ -53,7 +53,11 @@ async function getAvailableSlotsForUser(
   userId: string,
   dateStart: string,
   dateEnd: string,
-  slotDuration: number
+  slotDuration: number,
+  workingHoursStart: string = '09:00',
+  workingHoursEnd: string = '18:00',
+  lunchStart: string | null = null,
+  lunchEnd: string | null = null
 ) {
   console.log('=== getAvailableSlotsForUser ===')
   console.log('User ID:', userId)
@@ -114,10 +118,10 @@ async function getAvailableSlotsForUser(
       events,
       dateStart,
       dateEnd,
-      '09:00',
-      '18:00',
-      '12:00',
-      '13:00',
+      workingHoursStart,
+      workingHoursEnd,
+      lunchStart,
+      lunchEnd,
       slotDuration
     )
 
@@ -138,7 +142,11 @@ async function getAvailableSlotsForTeam(
   teamId: string,
   dateStart: string,
   dateEnd: string,
-  slotDuration: number
+  slotDuration: number,
+  workingHoursStart: string = '09:00',
+  workingHoursEnd: string = '18:00',
+  lunchStart: string | null = null,
+  lunchEnd: string | null = null
 ) {
   console.log('=== getAvailableSlotsForTeam ===')
   console.log('Team ID:', teamId)
@@ -163,7 +171,11 @@ async function getAvailableSlotsForTeam(
           member.user_id!,
           dateStart,
           dateEnd,
-          slotDuration
+          slotDuration,
+          workingHoursStart,
+          workingHoursEnd,
+          lunchStart,
+          lunchEnd
         )
       )
     )
@@ -256,6 +268,24 @@ export async function POST(request: Request) {
     const effectiveDateStart = dateStart || schedule.date_range_start
     const effectiveDateEnd = dateEnd || schedule.date_range_end
 
+    // ⭐ 営業時間の設定を取得
+    const workingHoursStart = schedule.is_interview_mode 
+      ? (schedule.interview_time_start || '09:00')
+      : (schedule.working_hours_start || '09:00')
+    const workingHoursEnd = schedule.is_interview_mode 
+      ? (schedule.interview_time_end || '18:00')
+      : (schedule.working_hours_end || '18:00')
+    
+    // ⭐ ランチタイムの設定を取得（インタビューモードの場合のみ）
+    const lunchStart = schedule.is_interview_mode && schedule.interview_break_start 
+      ? schedule.interview_break_start 
+      : null
+    const lunchEnd = schedule.is_interview_mode && schedule.interview_break_end 
+      ? schedule.interview_break_end 
+      : null
+
+    console.log('🕐 Working hours:', { workingHoursStart, workingHoursEnd, lunchStart, lunchEnd })
+
     // ⭐ 병렬 처리로 속도 개선!
     console.log('🚀 Starting parallel fetch...')
     const startTime = Date.now()
@@ -266,20 +296,32 @@ export async function POST(request: Request) {
             schedule.team_id,
             effectiveDateStart,
             effectiveDateEnd,
-            schedule.time_slot_duration
+            schedule.time_slot_duration,
+            workingHoursStart,
+            workingHoursEnd,
+            lunchStart,
+            lunchEnd
           )
         : getAvailableSlotsForUser(
             schedule.user_id,
             effectiveDateStart,
             effectiveDateEnd,
-            schedule.time_slot_duration
+            schedule.time_slot_duration,
+            workingHoursStart,
+            workingHoursEnd,
+            lunchStart,
+            lunchEnd
           ),
       guestUserId 
         ? getAvailableSlotsForUser(
             guestUserId,
             effectiveDateStart,
             effectiveDateEnd,
-            schedule.time_slot_duration
+            schedule.time_slot_duration,
+            workingHoursStart,
+            workingHoursEnd,
+            lunchStart,
+            lunchEnd
           )
         : Promise.resolve(null),
       supabaseAdmin

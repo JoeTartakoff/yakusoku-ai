@@ -124,8 +124,8 @@ export function calculateAvailableSlots(
   dateRangeEnd: string,
   workingHoursStart: string = '09:00',
   workingHoursEnd: string = '18:00',
-  lunchStart: string = '12:00',
-  lunchEnd: string = '13:00',
+  lunchStart: string | null = null,
+  lunchEnd: string | null = null,
   slotDuration: number = 30
 ): TimeSlot[] {
   const availableSlots: TimeSlot[] = []
@@ -225,23 +225,24 @@ function generateTimeSlots(
   date: string,
   startTime: string,
   endTime: string,
-  lunchStart: string,
-  lunchEnd: string,
+  lunchStart: string | null,
+  lunchEnd: string | null,
   duration: number
 ): TimeSlot[] {
   const slots: TimeSlot[] = []
   const start = parseTime(startTime)
   const end = parseTime(endTime)
-  const lunchStartMin = parseTime(lunchStart)
-  const lunchEndMin = parseTime(lunchEnd)
+  const hasLunchTime = lunchStart !== null && lunchEnd !== null
+  const lunchStartMin = hasLunchTime ? parseTime(lunchStart!) : 0
+  const lunchEndMin = hasLunchTime ? parseTime(lunchEnd!) : 0
 
   let current = start
 
   while (current + duration <= end) {
     const slotEnd = current + duration
 
-    // 점심시간과 겹치는지 확인
-    const overlapLunch = (
+    // 점심시간과 겹치는지 확인（ランチタイムが設定されている場合のみ）
+    const overlapLunch = hasLunchTime && (
       (current >= lunchStartMin && current < lunchEndMin) ||
       (slotEnd > lunchStartMin && slotEnd <= lunchEndMin) ||
       (current <= lunchStartMin && slotEnd >= lunchEndMin)

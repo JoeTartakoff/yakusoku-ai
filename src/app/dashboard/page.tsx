@@ -36,6 +36,8 @@ interface Schedule {
   is_interview_mode: boolean
   interview_time_start: string | null
   interview_time_end: string | null
+  working_hours_start: string | null
+  working_hours_end: string | null
   folder_id: string | null
   team_id: string | null  
 }
