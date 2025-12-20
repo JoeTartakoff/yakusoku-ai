@@ -253,9 +253,12 @@ function generateTimeSlots(
         startTime: formatTime(current),
         endTime: formatTime(slotEnd),
       })
+      // 所要時間（duration）ごとに連続して枠を敷き詰める
+      current += duration
+    } else {
+      // ランチタイムと重複する場合は、ランチタイムの終了時刻から次の枠を開始
+      current = lunchEndMin
     }
-
-    current += 30  // 항상 30분씩 증가
   }
 
   return slots
