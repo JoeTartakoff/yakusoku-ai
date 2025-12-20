@@ -270,7 +270,7 @@ export default function TeamsPage() {
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">ヤクソクAI</h1>
+          <h1 className="text-xl font-bold text-gray-900">YAKUSOKU AI</h1>
           {/* ⭐ 모바일 닫기 버튼 */}
           <button
             onClick={() => setIsSidebarOpen(false)}

@@ -521,7 +521,7 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">ヤクソクAI</h1>
+          <h1 className="text-xl font-bold text-gray-900">YAKUSOKU AI</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
@@ -691,7 +691,7 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="text-lg font-bold text-gray-900">ヤクソクAI</h1>
+            <h1 className="text-lg font-bold text-gray-900">YAKUSOKU AI</h1>
             <div className="w-10"></div>
           </div>
         </div>

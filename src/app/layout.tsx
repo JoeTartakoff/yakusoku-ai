@@ -10,27 +10,27 @@ const notoSansJP = Noto_Sans_JP({
 
 // ⭐ PWA 메타데이터 추가
 export const metadata: Metadata = {
-  title: "ヤクソクAI",
+  title: "YAKUSOKU AI",
   description: "AIを活用したスケジュール調整システム",
   manifest: '/manifest.json',
   themeColor: '#3b82f6',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ヤクソクAI',
+    title: 'YAKUSOKU AI',
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
     type: 'website',
-    siteName: 'ヤクソクAI',
-    title: 'ヤクソクAI',
+    siteName: 'YAKUSOKU AI',
+    title: 'YAKUSOKU AI',
     description: 'AIを活用したスケジュール調整システム',
   },
   twitter: {
     card: 'summary',
-    title: 'ヤクソクAI',
+    title: 'YAKUSOKU AI',
     description: 'AIを活用したスケジュール調整システム',
   },
 };
@@ -50,7 +50,7 @@ export default function RootLayout({
         {/* ⭐ Apple 관련 */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="ヤクソクAI" />
+        <meta name="apple-mobile-web-app-title" content="YAKUSOKU AI" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         
         {/* ⭐ 아이콘 */}
