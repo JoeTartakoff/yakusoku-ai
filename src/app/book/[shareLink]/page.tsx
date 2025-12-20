@@ -995,21 +995,19 @@ export default function BookingPage() {
   }, [])
 
   // 表示する日付をメモ化
-  const scheduleDateRangeStart = schedule?.date_range_start
-  const scheduleDateRangeEnd = schedule?.date_range_end
   const displayDates = useMemo(() => {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:998',message:'displayDates useMemo entry',data:{scheduleExists:!!schedule,scheduleDateRangeStart,scheduleDateRangeEnd,startDateValue:startDate?.toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:998',message:'displayDates useMemo entry',data:{scheduleExists:!!schedule,scheduleDateRangeStart:schedule?.date_range_start,scheduleDateRangeEnd:schedule?.date_range_end,startDateValue:startDate?.toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
     // #endregion
-    if (!schedule || !scheduleDateRangeStart || !scheduleDateRangeEnd) {
+    if (!schedule) {
       // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:1002',message:'displayDates schedule is null or invalid',data:{scheduleExists:!!schedule,hasStart:!!scheduleDateRangeStart,hasEnd:!!scheduleDateRangeEnd},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:1002',message:'displayDates schedule is null',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
       return []
     }
     try {
       const dates = getThreeDayDates(startDate).filter(date => 
-        isDateInRange(date, scheduleDateRangeStart, scheduleDateRangeEnd)
+        isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
       )
       // #region agent log
       fetch('http://127.0.0.1:7243/ingest/ec63071f-8faa-43ad-b917-22b710b89eca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'page.tsx:1009',message:'displayDates useMemo exit',data:{datesLength:dates.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
@@ -1021,7 +1019,7 @@ export default function BookingPage() {
       // #endregion
       return []
     }
-  }, [startDate, scheduleDateRangeStart, scheduleDateRangeEnd])
+  }, [startDate, schedule])
 
   // スロットを日付別Mapに変換（O(n) → O(1)アクセス）
   const slotsByDate = useMemo(() => {
