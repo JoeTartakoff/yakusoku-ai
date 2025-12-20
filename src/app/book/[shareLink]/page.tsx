@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react'
 import { useParams } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
 interface Schedule {
@@ -1078,16 +1079,16 @@ export default function BookingPage() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* 左側: タイトルと説明 */}
+            {/* 左側: ロゴ */}
             <div className="flex items-center space-x-4 flex-1 min-w-0">
-              <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-bold text-gray-900 truncate">
-                  {schedule.title}
-                </h1>
-                <p className="text-sm text-gray-500 truncate">
-                  {schedule.time_slot_duration}分 | {schedule.date_range_start} ～ {schedule.date_range_end}
-                </p>
-              </div>
+              <Image
+                src="/logo.png"
+                alt="YAKUSOKU AI"
+                width={140}
+                height={40}
+                className="h-8 w-auto"
+                priority
+              />
               {isOneTimeMode && (
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
                   🔒 ワンタイムリンク
@@ -1177,6 +1178,16 @@ export default function BookingPage() {
 
 
         <div className="bg-white shadow rounded-lg p-6">
+          {/* スケジュール情報（タイトルと期間） */}
+          <div className="mb-4 pb-4 border-b border-gray-200">
+            <h1 className="text-xl font-bold text-gray-900 mb-1">
+              {schedule.title}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {schedule.time_slot_duration}分 | {schedule.date_range_start} ～ {schedule.date_range_end}
+            </p>
+          </div>
+
           <div className="flex items-center justify-between mb-6">
             {/* 左: 月年表示 */}
             <h2 className="text-xl font-bold text-gray-900">
