@@ -564,6 +564,8 @@ export default function InterviewPage() {
                         </td>
                         {displayDates.map((date, dateIdx) => {
                           const dateStr = date.toISOString().split('T')[0]
+                          const dayOfWeek = date.getDay()
+                          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0=日曜日, 6=土曜日
                           
                           const firstHalfTime = `${String(hour).padStart(2, '0')}:00`
                           const secondHalfTime = `${String(hour).padStart(2, '0')}:30`
@@ -573,7 +575,7 @@ export default function InterviewPage() {
                           return (
                             <td 
                               key={dateIdx} 
-                              className="border border-gray-300 p-0 relative"
+                              className={`border border-gray-300 p-0 relative ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}
                               style={{ height: '96px' }}
                               onClick={(e) => handleCellClick(dateStr, hour, e)}
                             >

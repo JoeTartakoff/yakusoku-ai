@@ -1,57 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  /* 既存の変数（互換性のため維持） */
   --background: #ffffff;
   --foreground: #171717;
-
-  /* ブランドカラー */
-  --primary-blue: #225BE4;
-  --primary-blue-hover: #1a47b8;
-  --primary-blue-light: #F3F4FF;
-
-  /* 背景カラー（階層構造） */
-  --bg-primary: #ffffff;      /* Level 3: カード、テーブル（最前面） */
-  --bg-secondary: #f5f5f5;    /* Level 1: ページ全体（最背面） */
-  --bg-sidebar: #fafafa;      /* Level 2: サイドバー（中間層） */
-  --bg-hover: #f0f0f0;        /* インタラクション時の背景 */
-
-  /* テキストカラー（重要度順） */
-  --text-primary: #212121;    /* 見出し、データ値、重要情報 */
-  --text-secondary: #757575;  /* ラベル、説明、補助情報 */
-  --text-tertiary: #9E9E9E;   /* セクションタイトル、最小限の情報 */
-
-  /* ステータスカラー */
-  --status-draft: #FF9800;    /* 下書き状態（オレンジ） */
-  --status-complete: #4CAF50; /* 完了状態（グリーン） */
 }
 
 @theme inline {
-  /* 既存のTailwind変数 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-noto-sans-jp), 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-
-  /* ブランドカラー（Tailwindクラスとして使用可能） */
-  --color-primary-blue: var(--primary-blue);
-  --color-primary-blue-hover: var(--primary-blue-hover);
-  --color-primary-blue-light: var(--primary-blue-light);
-
-  /* 背景カラー（Tailwindクラスとして使用可能） */
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-secondary: var(--bg-secondary);
-  --color-bg-sidebar: var(--bg-sidebar);
-  --color-bg-hover: var(--bg-hover);
-
-  /* テキストカラー（Tailwindクラスとして使用可能） */
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-
-  /* ステータスカラー（Tailwindクラスとして使用可能） */
-  --color-status-draft: var(--status-draft);
-  --color-status-complete: var(--status-complete);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,5 +22,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-noto-sans-jp), 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
 }

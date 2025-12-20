@@ -834,6 +834,8 @@ export default function BookingPage() {
                         </td>
                         {displayDates.map((date, dateIdx) => {
                           const dateStr = date.toISOString().split('T')[0]
+                          const dayOfWeek = date.getDay()
+                          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0=日曜日, 6=土曜日
                           
                           // この日付の利用可能スロットを取得
                           const slotsForDate = availableSlots
@@ -859,7 +861,7 @@ export default function BookingPage() {
                           return (
                             <td 
                               key={dateIdx} 
-                              className="border border-gray-300 p-0 relative"
+                              className={`border border-gray-300 p-0 relative ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}
                               style={{ height: '96px' }}
                             >
                               {/* 予約済み時間を表示（白い背景） */}
