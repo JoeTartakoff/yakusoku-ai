@@ -283,6 +283,15 @@ export default function BookingPage() {
   const [guestUser, setGuestUser] = useState<User | null>(null)
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [isOneTimeMode, setIsOneTimeMode] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successBookingData, setSuccessBookingData] = useState<{
+    bookingDate: string
+    startTime: string
+    endTime: string
+    name: string
+    email: string
+    comment: string | null
+  } | null>(null)
   const [oneTimeToken, setOneTimeToken] = useState<string | null>(null)
   const [tokenAlreadyUsed, setTokenAlreadyUsed] = useState(false)
   const [tokenError, setTokenError] = useState<string | null>(null)
@@ -862,16 +871,20 @@ export default function BookingPage() {
         weekday: 'long'
       })
 
-      alert(
-        `予約が完了しました！\n\n` +
-        `📅 日時：${bookingDate}\n` +
-        `🕐 時間：${selectedBlock.startTime.slice(0, 5)} - ${selectedBlock.endTime.slice(0, 5)}\n` +
-        `👤 名前：${guestInfo.name}\n` +
-        `📧 メール：${guestInfo.email}\n\n` +
-        `カレンダーに追加されました。`
-      )
-      
-      setTimeout(() => window.location.reload(), 1500)
+      // 予約確認モーダルを閉じる
+      setShowPopup(false)
+      setSelectedBlock(null)
+
+      // 成功モーダルを表示
+      setSuccessBookingData({
+        bookingDate,
+        startTime: selectedBlock.startTime.slice(0, 5),
+        endTime: selectedBlock.endTime.slice(0, 5),
+        name: guestInfo.name,
+        email: guestInfo.email,
+        comment: guestInfo.comment || null,
+      })
+      setShowSuccessModal(true)
     } catch (error) {
       console.error('❌ Submit error:', error)
       alert('予約に失敗しました')
@@ -1446,6 +1459,82 @@ export default function BookingPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSuccessModal && successBookingData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">
+                  予約が完了しました
+                </h2>
+              </div>
+
+              <div className="bg-green-50 p-4 rounded-md mb-6 border border-green-200">
+                <div className="flex items-center mb-3">
+                  <svg className="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm font-medium text-green-900">
+                    カレンダーに追加されました
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-md mb-6">
+                <p className="text-sm font-medium text-blue-900 mb-2">
+                  📅 日時
+                </p>
+                <p className="text-lg font-bold text-blue-900">
+                  {successBookingData.bookingDate}
+                </p>
+                <p className="text-lg font-bold text-blue-900 mt-1">
+                  {successBookingData.startTime} - {successBookingData.endTime}
+                </p>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    👤 名前
+                  </p>
+                  <p className="text-gray-900">{successBookingData.name}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    📧 メールアドレス
+                  </p>
+                  <p className="text-gray-900">{successBookingData.email}</p>
+                </div>
+
+                {successBookingData.comment && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      コメント
+                    </p>
+                    <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                      <p className="text-gray-900 whitespace-pre-wrap">{successBookingData.comment}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false)
+                    window.location.reload()
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors"
+                >
+                  OK
+                </button>
+              </div>
             </div>
           </div>
         </div>
