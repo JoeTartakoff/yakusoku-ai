@@ -41,11 +41,24 @@ interface Booking {
   end_time: string
 }
 
+// 指定された日付が含まれる週の月曜日を取得
+function getWeekStartMonday(date: Date): Date {
+  const monday = new Date(date)
+  const dayOfWeek = date.getDay() // 0=日曜日, 1=月曜日, ..., 6=土曜日
+  // 月曜日からの日数を計算（日曜日は6、月曜日は0、火曜日は1、...）
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  monday.setDate(date.getDate() - daysFromMonday)
+  return monday
+}
+
 function getDayDates(center: Date, days: number): Date[] {
   const dates: Date[] = []
+  // 7日表示の場合は、その週の月曜日から開始
+  const startDate = days === 7 ? getWeekStartMonday(center) : center
+  
   for (let i = 0; i < days; i++) {
-    const date = new Date(center)
-    date.setDate(center.getDate() + i)
+    const date = new Date(startDate)
+    date.setDate(startDate.getDate() + i)
     dates.push(date)
   }
   return dates
