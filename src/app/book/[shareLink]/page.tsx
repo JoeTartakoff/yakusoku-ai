@@ -1391,8 +1391,8 @@ export default function BookingPage() {
                     value={guestInfo.name}
                     onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
                     disabled={!!guestUser}
-                    className={`w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      guestUser ? 'bg-gray-100' : ''
+                    className={`w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      guestUser ? 'bg-gray-100 font-medium' : ''
                     }`}
                     placeholder="山田太郎"
                   />
@@ -1408,8 +1408,8 @@ export default function BookingPage() {
                     value={guestInfo.email}
                     onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
                     disabled={!!guestUser}
-                    className={`w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      guestUser ? 'bg-gray-100' : ''
+                    className={`w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      guestUser ? 'bg-gray-100 font-medium' : ''
                     }`}
                     placeholder="yamada@example.com"
                   />
@@ -1422,7 +1422,7 @@ export default function BookingPage() {
                   <textarea
                     value={guestInfo.comment}
                     onChange={(e) => setGuestInfo({ ...guestInfo, comment: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="ご質問やご要望がございましたらお書きください（任意）"
                     rows={4}
                   />
