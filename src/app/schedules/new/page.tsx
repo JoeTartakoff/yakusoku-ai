@@ -110,6 +110,8 @@ export default function NewSchedulePage() {
     endTime: '18:00',
   })
 
+  const [availableWeekdays, setAvailableWeekdays] = useState<number[]>([1, 2, 3, 4, 5]) // デフォルト: 月〜金
+
   const [availableTimeSlots, setAvailableTimeSlots] = useState<Array<{
     date: string
     startTime: string
@@ -588,6 +590,7 @@ export default function NewSchedulePage() {
           interview_break_end: scheduleMode === 'interview' && hasBreakTime ? interviewTimeSettings.breakEnd : null,
           working_hours_start: (scheduleMode === 'normal' || scheduleMode === 'candidate') ? workingHoursSettings.startTime : null,
           working_hours_end: (scheduleMode === 'normal' || scheduleMode === 'candidate') ? workingHoursSettings.endTime : null,
+          available_weekdays: availableWeekdays,
           assignment_method: isTeamSchedule ? 'round_robin' : null,
           create_meet_link: createMeetLink,
         })
@@ -994,6 +997,47 @@ export default function NewSchedulePage() {
                     />
                   </div>
                 </div>
+
+                {/* ⭐ 曜日選択 */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    対応可能な曜日
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 0, label: '日' },
+                      { value: 1, label: '月' },
+                      { value: 2, label: '火' },
+                      { value: 3, label: '水' },
+                      { value: 4, label: '木' },
+                      { value: 5, label: '金' },
+                      { value: 6, label: '土' },
+                    ].map((day) => (
+                      <label
+                        key={day.value}
+                        className={`flex items-center px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                          availableWeekdays.includes(day.value)
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={availableWeekdays.includes(day.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setAvailableWeekdays([...availableWeekdays, day.value].sort())
+                            } else {
+                              setAvailableWeekdays(availableWeekdays.filter(d => d !== day.value))
+                            }
+                          }}
+                          className="sr-only"
+                        />
+                        <span className="text-sm font-medium">{day.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1238,6 +1282,47 @@ export default function NewSchedulePage() {
                   <label htmlFor="hasBreakTime" className="text-sm font-medium text-gray-700 cursor-pointer">
                     休憩時間を設定する
                   </label>
+                </div>
+
+                {/* ⭐ 曜日選択 */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    対応可能な曜日
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 0, label: '日' },
+                      { value: 1, label: '月' },
+                      { value: 2, label: '火' },
+                      { value: 3, label: '水' },
+                      { value: 4, label: '木' },
+                      { value: 5, label: '金' },
+                      { value: 6, label: '土' },
+                    ].map((day) => (
+                      <label
+                        key={day.value}
+                        className={`flex items-center px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                          availableWeekdays.includes(day.value)
+                            ? 'bg-orange-500 text-white border-orange-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={availableWeekdays.includes(day.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setAvailableWeekdays([...availableWeekdays, day.value].sort())
+                            } else {
+                              setAvailableWeekdays(availableWeekdays.filter(d => d !== day.value))
+                            }
+                          }}
+                          className="sr-only"
+                        />
+                        <span className="text-sm font-medium">{day.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 {hasBreakTime && (

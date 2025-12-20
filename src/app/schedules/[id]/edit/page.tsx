@@ -115,6 +115,8 @@ export default function EditSchedulePage() {
     endTime: '18:00',
   })
 
+  const [availableWeekdays, setAvailableWeekdays] = useState<number[]>([1, 2, 3, 4, 5]) // デフォルト: 月〜金
+
   const [availableTimeSlots, setAvailableTimeSlots] = useState<Array<{
     date: string
     startTime: string
@@ -262,6 +264,11 @@ export default function EditSchedulePage() {
           breakEnd: schedule.interview_break_end || '13:00',
         })
         setHasBreakTime(!!(schedule.interview_break_start && schedule.interview_break_end))
+        
+        // ⭐ インタビューモードでも曜日設定を読み込む
+        setAvailableWeekdays(schedule.available_weekdays && schedule.available_weekdays.length > 0 
+          ? schedule.available_weekdays 
+          : [1, 2, 3, 4, 5])
       } else if (schedule.is_candidate_mode) {
         setScheduleMode('candidate')
         
@@ -284,6 +291,11 @@ export default function EditSchedulePage() {
         startTime: schedule.working_hours_start || '09:00',
         endTime: schedule.working_hours_end || '18:00',
       })
+
+      // ⭐ 曜日設定を読み込む（デフォルト: 月〜金）
+      setAvailableWeekdays(schedule.available_weekdays && schedule.available_weekdays.length > 0 
+        ? schedule.available_weekdays 
+        : [1, 2, 3, 4, 5])
 
       // ⭐ Step 3: Google Meet 설정 불러오기
       setCreateMeetLink(schedule.create_meet_link || false)
@@ -633,6 +645,7 @@ export default function EditSchedulePage() {
         updateData.interview_break_start = hasBreakTime ? interviewTimeSettings.breakStart : null
         updateData.interview_break_end = hasBreakTime ? interviewTimeSettings.breakEnd : null
         updateData.candidate_slots = null
+        updateData.available_weekdays = availableWeekdays
       } else if (scheduleMode === 'candidate') {
         // ⭐ selectedBlocks를 candidate_slots 형식으로 변환
         const candidateSlotsData = selectedBlocks.map(block => ({
@@ -650,6 +663,7 @@ export default function EditSchedulePage() {
         updateData.candidate_slots = candidateSlotsData
         updateData.working_hours_start = workingHoursSettings.startTime
         updateData.working_hours_end = workingHoursSettings.endTime
+        updateData.available_weekdays = availableWeekdays
       } else {
         updateData.is_candidate_mode = false
         updateData.is_interview_mode = false
@@ -660,6 +674,7 @@ export default function EditSchedulePage() {
         updateData.candidate_slots = null
         updateData.working_hours_start = workingHoursSettings.startTime
         updateData.working_hours_end = workingHoursSettings.endTime
+        updateData.available_weekdays = availableWeekdays
       }
 
       const { error } = await supabase
@@ -1018,6 +1033,47 @@ export default function EditSchedulePage() {
                     />
                   </div>
                 </div>
+
+                {/* ⭐ 曜日選択 */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    対応可能な曜日
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 0, label: '日' },
+                      { value: 1, label: '月' },
+                      { value: 2, label: '火' },
+                      { value: 3, label: '水' },
+                      { value: 4, label: '木' },
+                      { value: 5, label: '金' },
+                      { value: 6, label: '土' },
+                    ].map((day) => (
+                      <label
+                        key={day.value}
+                        className={`flex items-center px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                          availableWeekdays.includes(day.value)
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={availableWeekdays.includes(day.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setAvailableWeekdays([...availableWeekdays, day.value].sort())
+                            } else {
+                              setAvailableWeekdays(availableWeekdays.filter(d => d !== day.value))
+                            }
+                          }}
+                          className="sr-only"
+                        />
+                        <span className="text-sm font-medium">{day.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1261,6 +1317,47 @@ export default function EditSchedulePage() {
                   <label htmlFor="hasBreakTime" className="text-sm font-medium text-gray-700 cursor-pointer">
                     休憩時間を設定する
                   </label>
+                </div>
+
+                {/* ⭐ 曜日選択 */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    対応可能な曜日
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 0, label: '日' },
+                      { value: 1, label: '月' },
+                      { value: 2, label: '火' },
+                      { value: 3, label: '水' },
+                      { value: 4, label: '木' },
+                      { value: 5, label: '金' },
+                      { value: 6, label: '土' },
+                    ].map((day) => (
+                      <label
+                        key={day.value}
+                        className={`flex items-center px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                          availableWeekdays.includes(day.value)
+                            ? 'bg-orange-500 text-white border-orange-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={availableWeekdays.includes(day.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setAvailableWeekdays([...availableWeekdays, day.value].sort())
+                            } else {
+                              setAvailableWeekdays(availableWeekdays.filter(d => d !== day.value))
+                            }
+                          }}
+                          className="sr-only"
+                        />
+                        <span className="text-sm font-medium">{day.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 {hasBreakTime && (

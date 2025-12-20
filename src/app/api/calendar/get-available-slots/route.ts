@@ -368,14 +368,26 @@ export async function POST(request: Request) {
     const validBookings = bookingsResult.data || []
     console.log(`✅ Using ${validBookings.length} confirmed bookings from DB`)
 
-    // 예약된 시간 제외
+    // 예약된 시간 제외 + 曜日設定を考慮
+    const allowedWeekdays = schedule.available_weekdays && schedule.available_weekdays.length > 0
+      ? schedule.available_weekdays
+      : [1, 2, 3, 4, 5] // デフォルト: 月〜金
+
     const availableSlots = finalSlots.filter(slot => {
-      return !validBookings.some(
+      // 予約済みチェック
+      if (validBookings.some(
         booking =>
           booking.booking_date === slot.date &&
           booking.start_time === slot.startTime &&
           booking.end_time === slot.endTime
-      )
+      )) {
+        return false
+      }
+      
+      // 曜日チェック
+      const slotDate = new Date(slot.date)
+      const dayOfWeek = slotDate.getDay() // 0=日曜日, 1=月曜日, ..., 6=土曜日
+      return allowedWeekdays.includes(dayOfWeek)
     })
 
     console.log(`✅ Final available slots: ${availableSlots.length}`)

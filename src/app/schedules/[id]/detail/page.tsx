@@ -29,6 +29,7 @@ interface Schedule {
   interview_time_end: string | null
   working_hours_start: string | null
   working_hours_end: string | null
+  available_weekdays: number[] | null
   folder_id: string | null
   team_id: string | null
   user_id: string

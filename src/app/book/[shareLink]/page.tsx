@@ -21,6 +21,7 @@ interface Schedule {
   interview_time_end: string | null
   working_hours_start: string | null
   working_hours_end: string | null
+  available_weekdays: number[] | null
 }
 
 interface AvailabilitySlot {
@@ -950,34 +951,56 @@ export default function BookingPage() {
     return slots
   }, [workingHours])
 
-  // 表示する日付をメモ化
+  // 表示する日付をメモ化（曜日設定を考慮）
   const displayDates = useMemo(() => {
     if (!schedule) {
       return []
     }
     try {
-      const dates = getDayDates(startDate, viewDays).filter(date => 
-        isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
-      )
+      const allowedWeekdays = schedule.available_weekdays && schedule.available_weekdays.length > 0
+        ? schedule.available_weekdays
+        : [1, 2, 3, 4, 5] // デフォルト: 月〜金
+      
+      const dates = getDayDates(startDate, viewDays).filter(date => {
+        // 日付範囲チェック
+        if (!isDateInRange(date, schedule.date_range_start, schedule.date_range_end)) {
+          return false
+        }
+        // 曜日チェック
+        const dayOfWeek = date.getDay()
+        return allowedWeekdays.includes(dayOfWeek)
+      })
       return dates
     } catch (error) {
       return []
     }
   }, [startDate, schedule, viewDays])
 
-  // スロットを日付別Mapに変換（O(n) → O(1)アクセス）
+  // スロットを日付別Mapに変換（O(n) → O(1)アクセス）、曜日設定を考慮
   const slotsByDate = useMemo(() => {
     try {
       const map = new Map<string, AvailabilitySlot[]>()
       if (!Array.isArray(availableSlots)) {
         return map
       }
+      
+      // 曜日設定を取得（デフォルト: 月〜金）
+      const allowedWeekdays = schedule?.available_weekdays && schedule.available_weekdays.length > 0
+        ? schedule.available_weekdays
+        : [1, 2, 3, 4, 5]
+      
       availableSlots.forEach(slot => {
-        const existing = map.get(slot.date) || []
-        const sorted = [...existing, slot].sort((a, b) => 
-          timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
-        )
-        map.set(slot.date, sorted)
+        const date = new Date(slot.date)
+        const dayOfWeek = date.getDay() // 0=日曜日, 1=月曜日, ..., 6=土曜日
+        
+        // 曜日設定に含まれている場合のみ追加
+        if (allowedWeekdays.includes(dayOfWeek)) {
+          const existing = map.get(slot.date) || []
+          const sorted = [...existing, slot].sort((a, b) => 
+            timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
+          )
+          map.set(slot.date, sorted)
+        }
       })
       return map
     } catch (error) {
