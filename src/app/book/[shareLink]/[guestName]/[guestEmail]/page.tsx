@@ -896,7 +896,7 @@ export default function BookingPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse select-none">
+              <table className="w-full border-collapse select-none table-fixed">
                 <thead>
                   <tr>
                     <th className="border border-gray-300 bg-gray-50 p-2 text-sm font-medium text-gray-500 w-20">
@@ -909,7 +909,7 @@ export default function BookingPage() {
                       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // 0=日曜日, 6=土曜日
                       
                       return (
-                        <th key={idx} className={`border border-gray-300 p-2 ${isWeekend ? 'bg-orange-50' : 'bg-gray-50'}`}>
+                        <th key={idx} className={`border border-gray-300 p-2 ${isWeekend ? 'bg-orange-50' : 'bg-gray-50'}`} style={{ width: 'calc((100% - 80px) / ' + displayDates.length + ')' }}>
                           <div className={`text-base font-bold ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
                             {date.getDate()}({date.toLocaleDateString('ja-JP', { weekday: 'short' })})
                           </div>
@@ -1045,7 +1045,7 @@ export default function BookingPage() {
                                         }
                                       }}
                                     >
-                                      <span className="time-text">
+                                      <span className="time-text whitespace-nowrap">
                                         {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                                       </span>
                                       <span className="action-text" style={{ display: 'none' }}>
