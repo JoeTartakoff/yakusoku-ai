@@ -895,58 +895,73 @@ export default function BookingPage() {
                                 )
                               })}
                               
-                              {/* 利用可能スロットを青色ブロックで表示 */}
-                              {(() => {
-                                // 重複するスロットをグループ化
-                                const groupedSlots = groupOverlappingSlots(slotsInHour)
+                              {/* 利用可能スロットをボタンスタイルで表示 */}
+                              {slotsInHour.map((slot, slotIdx) => {
+                                const slotStartMinutes = timeToMinutes(slot.start_time)
+                                const slotEndMinutes = timeToMinutes(slot.end_time)
                                 
-                                return groupedSlots.flatMap((group, groupIdx) => {
-                                  return group.map((slot, slotIdx) => {
-                                    const slotStartMinutes = timeToMinutes(slot.start_time)
-                                    const slotEndMinutes = timeToMinutes(slot.end_time)
-                                    
-                                    const slotTop = Math.max(0, (slotStartMinutes - hourStartMinutes) / 60 * 96)
-                                    const slotBottom = Math.min(96, (slotEndMinutes - hourStartMinutes) / 60 * 96)
-                                    const slotHeight = slotBottom - slotTop
-                                    
-                                    const isSelected = selectedBlock && 
-                                                      selectedBlock.date === slot.date &&
-                                                      selectedBlock.startTime === slot.start_time &&
-                                                      selectedBlock.endTime === slot.end_time
-                                    
-                                    // グループ内のスロット数に応じて幅と位置を計算
-                                    const slotWidth = group.length > 1 ? (100 / group.length) - 2 : 98 // グループが複数の場合、幅を調整
-                                    const leftOffset = group.length > 1 ? (slotIdx / group.length) * 100 + 1 : 1 // 左からのオフセット
-                                    const margin = group.length > 1 ? 2 : 0 // マージン
-                                    
-                                    return (
-                                      <div
-                                        key={`slot-group-${groupIdx}-slot-${slotIdx}`}
-                                        className={`absolute rounded shadow-md cursor-pointer transition-all z-20 ${
-                                          isSelected
-                                            ? 'bg-blue-700 ring-2 ring-blue-400 ring-offset-1'
-                                            : 'bg-blue-500 hover:bg-blue-600'
-                                        }`}
-                                        style={{
-                                          top: `${slotTop}px`,
-                                          height: `${slotHeight}px`,
-                                          left: `${leftOffset}%`,
-                                          width: `calc(${slotWidth}% - ${margin}px)`,
-                                          marginRight: `${margin}px`
-                                        }}
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleSlotClick(slot)
-                                        }}
-                                      >
-                                        <div className="flex flex-col items-center justify-center h-full text-white text-xs font-medium px-1">
-                                          <div>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</div>
-                                        </div>
-                                      </div>
-                                    )
-                                  })
-                                })
-                              })()}
+                                const slotTop = Math.max(0, (slotStartMinutes - hourStartMinutes) / 60 * 96)
+                                const slotBottom = Math.min(96, (slotEndMinutes - hourStartMinutes) / 60 * 96)
+                                const slotHeight = slotBottom - slotTop
+                                
+                                const isSelected = selectedBlock && 
+                                                  selectedBlock.date === slot.date &&
+                                                  selectedBlock.startTime === slot.start_time &&
+                                                  selectedBlock.endTime === slot.end_time
+                                
+                                return (
+                                  <div
+                                    key={`slot-${slotIdx}`}
+                                    className="absolute left-1 right-1 z-20 group"
+                                    style={{
+                                      top: `${slotTop}px`,
+                                      height: `${slotHeight}px`,
+                                    }}
+                                  >
+                                    <button
+                                      className={`w-full h-full rounded-lg border-2 shadow-sm cursor-pointer transition-all duration-200 flex items-center justify-center font-medium ${
+                                        isSelected
+                                          ? 'bg-blue-600 border-blue-600 text-white ring-2 ring-blue-400 ring-offset-1'
+                                          : 'bg-white border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white hover:shadow-md'
+                                      }`}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleSlotClick(slot)
+                                      }}
+                                      style={{
+                                        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+                                        fontSize: '0.9375rem',
+                                        letterSpacing: '0.025em',
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        if (!isSelected) {
+                                          const btn = e.currentTarget
+                                          const timeSpan = btn.querySelector('.time-text') as HTMLElement
+                                          const actionSpan = btn.querySelector('.action-text') as HTMLElement
+                                          if (timeSpan) timeSpan.style.display = 'none'
+                                          if (actionSpan) actionSpan.style.display = 'inline'
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (!isSelected) {
+                                          const btn = e.currentTarget
+                                          const timeSpan = btn.querySelector('.time-text') as HTMLElement
+                                          const actionSpan = btn.querySelector('.action-text') as HTMLElement
+                                          if (timeSpan) timeSpan.style.display = 'inline'
+                                          if (actionSpan) actionSpan.style.display = 'none'
+                                        }
+                                      }}
+                                    >
+                                      <span className="time-text">
+                                        {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                                      </span>
+                                      <span className="action-text" style={{ display: 'none' }}>
+                                        予約する
+                                      </span>
+                                    </button>
+                                  </div>
+                                )
+                              })}
                             </td>
                           )
                         })}
