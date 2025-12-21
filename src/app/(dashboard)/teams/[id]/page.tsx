@@ -152,8 +152,7 @@ export default function TeamDetailPage() {
     fetchTeamData().catch((error) => {
       console.error('Error in fetchTeamData:', error)
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.email, teamId])
+  }, [user?.id, user?.email, teamId, router])
 
   const addMember = async () => {
     if (!teamId) {
@@ -287,8 +286,7 @@ export default function TeamDetailPage() {
       console.error('teamId is undefined after user loaded, redirecting...')
       router.push('/teams')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, teamId])
+  }, [user, teamId, router])
 
   if (loading) {
     return (
