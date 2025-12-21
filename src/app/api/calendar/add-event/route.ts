@@ -619,8 +619,9 @@ export async function POST(request: Request) {
         console.warn('Some emails failed to send, but booking completed')
       }
     } catch (emailError) {
+      // メール送信エラーはログに記録するが、予約は完了しているため続行
       if (process.env.NODE_ENV !== 'production') {
-        console.error('Email sending failed, but booking completed:', emailError)
+        console.error('Email sending failed, but booking completed')
       }
     }
 
