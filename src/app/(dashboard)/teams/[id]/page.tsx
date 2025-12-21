@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -39,123 +39,117 @@ export default function TeamDetailPage() {
   const [allTeams, setAllTeams] = useState<Team[]>([])
   const [teamMembersCount, setTeamMembersCount] = useState<Record<string, number>>({})
 
-  const fetchTeamData = useCallback(async (userId: string, userEmail: string) => {
-    if (!teamId) {
-      console.error('teamId is undefined')
-      router.push('/teams')
+  useEffect(() => {
+    if (!user || !user.email || !teamId) {
+      if (user && !teamId) {
+        console.warn('teamId is undefined, waiting for params...')
+      }
       return
     }
-    
-    try {
-      setLoading(true)
-      // 현재 팀 정보 가져오기
-      const { data: teamData, error: teamError } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('id', teamId)
-        .single()
 
-      if (teamError || !teamData) {
-        console.error('Team not found:', teamError)
-        alert('チームが見つかりません')
+    const fetchTeamData = async () => {
+      try {
+        setLoading(true)
+        // 현재 팀 정보 가져오기
+        const { data: teamData, error: teamError } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('id', teamId)
+          .single()
+
+        if (teamError || !teamData) {
+          console.error('Team not found:', teamError)
+          alert('チームが見つかりません')
+          router.push('/teams')
+          return
+        }
+
+        setTeam(teamData)
+        setIsOwner(teamData.owner_id === user.id)
+
+        // 팀원 목록 가져오기
+        const { data: membersData } = await supabase
+          .from('team_members')
+          .select('*')
+          .eq('team_id', teamId)
+          .order('joined_at', { ascending: true })
+
+        setMembers(membersData || [])
+
+        // 사이드바용 전체 팀 목록 가져오기
+        const { data: ownedTeams } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false })
+
+        const { data: memberTeamsByUserId } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', user.id)
+
+        const { data: memberTeamsByEmail } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('email', user.email)
+
+        const allMemberTeams = [
+          ...(memberTeamsByUserId || []),
+          ...(memberTeamsByEmail || [])
+        ]
+
+        if (allMemberTeams.length > 0) {
+          const memberTeamIds = [...new Set(allMemberTeams.map(m => m.team_id))]
+
+          const { data: memberTeamsData } = await supabase
+            .from('teams')
+            .select('*')
+            .in('id', memberTeamIds)
+            .order('created_at', { ascending: false })
+
+          const allTeamsData = [...(ownedTeams || []), ...(memberTeamsData || [])]
+          const uniqueTeams = Array.from(new Map(allTeamsData.map(t => [t.id, t])).values())
+          
+          setAllTeams(uniqueTeams)
+
+          // 팀별 멤버 수 가져오기
+          const counts: Record<string, number> = {}
+          for (const team of uniqueTeams) {
+            const { count } = await supabase
+              .from('team_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('team_id', team.id)
+            
+            counts[team.id] = count || 0
+          }
+          setTeamMembersCount(counts)
+        } else {
+          setAllTeams(ownedTeams || [])
+          
+          const counts: Record<string, number> = {}
+          for (const team of (ownedTeams || [])) {
+            const { count } = await supabase
+              .from('team_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('team_id', team.id)
+            
+            counts[team.id] = count || 0
+          }
+          setTeamMembersCount(counts)
+        }
+      } catch (error) {
+        console.error('Error fetching team data:', error)
+        alert('データの読み込みに失敗しました')
         router.push('/teams')
-        return
+      } finally {
+        setLoading(false)
       }
-
-    setTeam(teamData)
-    setIsOwner(teamData.owner_id === userId)
-
-    // 팀원 목록 가져오기
-    const { data: membersData } = await supabase
-      .from('team_members')
-      .select('*')
-      .eq('team_id', teamId)
-      .order('joined_at', { ascending: true })
-
-    setMembers(membersData || [])
-
-    // 사이드바용 전체 팀 목록 가져오기
-    const { data: ownedTeams } = await supabase
-      .from('teams')
-      .select('*')
-      .eq('owner_id', userId)
-      .order('created_at', { ascending: false })
-
-    const { data: memberTeamsByUserId } = await supabase
-      .from('team_members')
-      .select('team_id')
-      .eq('user_id', userId)
-
-    const { data: memberTeamsByEmail } = await supabase
-      .from('team_members')
-      .select('team_id')
-      .eq('email', userEmail)
-
-    const allMemberTeams = [
-      ...(memberTeamsByUserId || []),
-      ...(memberTeamsByEmail || [])
-    ]
-
-    if (allMemberTeams.length > 0) {
-      const memberTeamIds = [...new Set(allMemberTeams.map(m => m.team_id))]
-
-      const { data: memberTeamsData } = await supabase
-        .from('teams')
-        .select('*')
-        .in('id', memberTeamIds)
-        .order('created_at', { ascending: false })
-
-      const allTeamsData = [...(ownedTeams || []), ...(memberTeamsData || [])]
-      const uniqueTeams = Array.from(new Map(allTeamsData.map(t => [t.id, t])).values())
-      
-      setAllTeams(uniqueTeams)
-
-      // 팀별 멤버 수 가져오기
-      const counts: Record<string, number> = {}
-      for (const team of uniqueTeams) {
-        const { count } = await supabase
-          .from('team_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('team_id', team.id)
-        
-        counts[team.id] = count || 0
-      }
-      setTeamMembersCount(counts)
-    } else {
-      setAllTeams(ownedTeams || [])
-      
-      const counts: Record<string, number> = {}
-      for (const team of (ownedTeams || [])) {
-        const { count } = await supabase
-          .from('team_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('team_id', team.id)
-        
-        counts[team.id] = count || 0
-      }
-      setTeamMembersCount(counts)
     }
-    } catch (error) {
-      console.error('Error fetching team data:', error)
-      alert('データの読み込みに失敗しました')
-      router.push('/teams')
-    } finally {
-      setLoading(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId])
 
-  useEffect(() => {
-    if (user && user.email && teamId) {
-      fetchTeamData(user.id, user.email).catch((error) => {
-        console.error('Error in fetchTeamData:', error)
-      })
-    } else if (user && !teamId) {
-      // userが読み込まれたが、teamIdがまだundefinedの場合
-      // これはparamsがまだ読み込まれていない可能性がある
-      console.warn('teamId is undefined, waiting for params...')
-    }
-  }, [user, teamId, fetchTeamData])
+    fetchTeamData().catch((error) => {
+      console.error('Error in fetchTeamData:', error)
+    })
+  }, [user, teamId, router])
 
   const addMember = async () => {
     if (!teamId) {
@@ -211,8 +205,28 @@ export default function TeamDetailPage() {
       setNewMemberEmail('')
       setShowAddModal(false)
       
-      if (user && user.email) {
-        await fetchTeamData(user.id, user.email)
+      // データを再取得するために、useEffectをトリガーするためにstateを更新
+      if (user && user.email && teamId) {
+        // fetchTeamDataを直接呼び出すのではなく、useEffectをトリガーする
+        setLoading(true)
+        // useEffectが再実行されるように、一時的にteamIdを変更してから戻す
+        const currentTeamId = teamId
+        // データを再取得
+        const { data: teamData } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('id', currentTeamId)
+          .single()
+        
+        if (teamData) {
+          const { data: membersData } = await supabase
+            .from('team_members')
+            .select('*')
+            .eq('team_id', currentTeamId)
+            .order('joined_at', { ascending: true })
+          setMembers(membersData || [])
+        }
+        setLoading(false)
       }
     } catch (error) {
       console.error('Error adding member:', error)
@@ -233,8 +247,28 @@ export default function TeamDetailPage() {
 
       alert('メンバーを削除しました')
       
-      if (user && user.email) {
-        await fetchTeamData(user.id, user.email)
+      // データを再取得するために、useEffectをトリガーするためにstateを更新
+      if (user && user.email && teamId) {
+        // fetchTeamDataを直接呼び出すのではなく、useEffectをトリガーする
+        setLoading(true)
+        // useEffectが再実行されるように、一時的にteamIdを変更してから戻す
+        const currentTeamId = teamId
+        // データを再取得
+        const { data: teamData } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('id', currentTeamId)
+          .single()
+        
+        if (teamData) {
+          const { data: membersData } = await supabase
+            .from('team_members')
+            .select('*')
+            .eq('team_id', currentTeamId)
+            .order('joined_at', { ascending: true })
+          setMembers(membersData || [])
+        }
+        setLoading(false)
       }
     } catch (error) {
       console.error('Error removing member:', error)
