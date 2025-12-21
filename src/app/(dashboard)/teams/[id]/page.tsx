@@ -26,7 +26,8 @@ interface TeamMember {
 export default function TeamDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const teamId = params?.id as string | undefined
+  // paramsが存在し、idが文字列であることを確認
+  const teamId = params && typeof params.id === 'string' ? params.id : undefined
   const { user, setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpen } = useSidebar()
 
   const [loading, setLoading] = useState(true)
@@ -40,23 +41,26 @@ export default function TeamDetailPage() {
 
   const fetchTeamData = useCallback(async (userId: string, userEmail: string) => {
     if (!teamId) {
+      console.error('teamId is undefined')
       router.push('/teams')
       return
     }
     
-    setLoading(true)
-    // 현재 팀 정보 가져오기
-    const { data: teamData, error: teamError } = await supabase
-      .from('teams')
-      .select('*')
-      .eq('id', teamId)
-      .single()
+    try {
+      setLoading(true)
+      // 현재 팀 정보 가져오기
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', teamId)
+        .single()
 
-    if (teamError || !teamData) {
-      alert('チームが見つかりません')
-      router.push('/teams')
-      return
-    }
+      if (teamError || !teamData) {
+        console.error('Team not found:', teamError)
+        alert('チームが見つかりません')
+        router.push('/teams')
+        return
+      }
 
     setTeam(teamData)
     setIsOwner(teamData.owner_id === userId)
@@ -131,12 +135,24 @@ export default function TeamDetailPage() {
       }
       setTeamMembersCount(counts)
     }
-    setLoading(false)
+    } catch (error) {
+      console.error('Error fetching team data:', error)
+      alert('データの読み込みに失敗しました')
+      router.push('/teams')
+    } finally {
+      setLoading(false)
+    }
   }, [teamId, router])
 
   useEffect(() => {
     if (user && user.email && teamId) {
-      fetchTeamData(user.id, user.email)
+      fetchTeamData(user.id, user.email).catch((error) => {
+        console.error('Error in fetchTeamData:', error)
+      })
+    } else if (user && !teamId) {
+      // userが読み込まれたが、teamIdがまだundefinedの場合
+      // これはparamsがまだ読み込まれていない可能性がある
+      console.warn('teamId is undefined, waiting for params...')
     }
   }, [user, teamId, fetchTeamData])
 
@@ -226,12 +242,13 @@ export default function TeamDetailPage() {
   }
 
 
-  // teamIdがundefinedの場合はリダイレクト
+  // teamIdがundefinedの場合はリダイレクト（userが読み込まれた後に実行）
   useEffect(() => {
-    if (!teamId) {
+    if (user && !teamId) {
+      console.error('teamId is undefined after user loaded, redirecting...')
       router.push('/teams')
     }
-  }, [teamId, router])
+  }, [user, teamId, router])
 
   if (loading) {
     return (
@@ -242,6 +259,14 @@ export default function TeamDetailPage() {
   }
 
   if (!teamId) {
+    // teamIdがundefinedの場合、userが読み込まれるまで待つ
+    if (!user) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      )
+    }
     return null
   }
 
