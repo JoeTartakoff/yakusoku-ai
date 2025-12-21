@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { tokenSchema, formatValidationError } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {
-    const { token } = await request.json()
+    const body = await request.json()
 
-    if (!token) {
+    // Zodによる入力検証
+    const validationResult = tokenSchema.safeParse(body)
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'token is required' },
+        { error: formatValidationError(validationResult.error) },
         { status: 400 }
       )
     }
+
+    const { token } = validationResult.data
 
     // ⭐ Supabase Service Role Client 생성
     const supabase = createClient(
@@ -39,7 +44,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {
-    console.error('Error in use token API:', error instanceof Error ? error.message : 'Unknown error')
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error in use token API:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: 'Failed to mark token as used' },
       { status: 500 }

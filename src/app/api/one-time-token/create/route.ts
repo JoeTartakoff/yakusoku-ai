@@ -50,7 +50,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ token })
   } catch (error: unknown) {
-    console.error('Error in create token API:', error instanceof Error ? error.message : 'Unknown error')
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error in create token API:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: 'Failed to create token' },
       { status: 500 }

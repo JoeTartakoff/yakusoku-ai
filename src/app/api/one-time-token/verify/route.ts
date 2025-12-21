@@ -61,7 +61,9 @@ export async function POST(request: NextRequest) {
       scheduleId: data.schedule_id
     })
   } catch (error: unknown) {
-    console.error('Error in verify token API:', error instanceof Error ? error.message : 'Unknown error')
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error in verify token API:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: 'Failed to verify token' },
       { status: 500 }
