@@ -663,7 +663,7 @@ export default function NewSchedulePage() {
   const blockHeightPx = formData.timeSlotDuration ? (formData.timeSlotDuration / 60) * 96 : 96
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}

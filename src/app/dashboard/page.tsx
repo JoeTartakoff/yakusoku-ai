@@ -481,7 +481,7 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       <div className="fixed top-4 right-4 z-[9999] space-y-2">
         {toasts.map((toast) => (
           <div
