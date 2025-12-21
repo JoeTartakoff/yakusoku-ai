@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -38,13 +38,7 @@ export default function TeamDetailPage() {
   const [allTeams, setAllTeams] = useState<Team[]>([])
   const [teamMembersCount, setTeamMembersCount] = useState<Record<string, number>>({})
 
-  useEffect(() => {
-    if (user && user.email && teamId) {
-      fetchTeamData(user.id, user.email)
-    }
-  }, [user, teamId])
-
-  const fetchTeamData = async (userId: string, userEmail: string) => {
+  const fetchTeamData = useCallback(async (userId: string, userEmail: string) => {
     if (!teamId) {
       router.push('/teams')
       return
@@ -138,9 +132,21 @@ export default function TeamDetailPage() {
       setTeamMembersCount(counts)
     }
     setLoading(false)
-  }
+  }, [teamId, router])
+
+  useEffect(() => {
+    if (user && user.email && teamId) {
+      fetchTeamData(user.id, user.email)
+    }
+  }, [user, teamId, fetchTeamData])
 
   const addMember = async () => {
+    if (!teamId) {
+      alert('チームIDが無効です')
+      router.push('/teams')
+      return
+    }
+
     if (!newMemberEmail.trim()) {
       alert('メールアドレスを入力してください')
       return
