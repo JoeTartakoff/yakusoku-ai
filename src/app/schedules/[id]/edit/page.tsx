@@ -1425,6 +1425,7 @@ export default function EditSchedulePage() {
             </div>
           </form>
         </div>
+        </div>
       </main>
     </div>
   )
