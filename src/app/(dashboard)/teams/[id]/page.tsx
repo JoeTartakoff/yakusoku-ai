@@ -26,7 +26,7 @@ interface TeamMember {
 export default function TeamDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const teamId = params.id as string
+  const teamId = params?.id as string | undefined
   const { user, setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpen } = useSidebar()
 
   const [loading, setLoading] = useState(true)
@@ -39,12 +39,17 @@ export default function TeamDetailPage() {
   const [teamMembersCount, setTeamMembersCount] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    if (user) {
-      fetchTeamData(user.id, user.email!)
+    if (user && user.email && teamId) {
+      fetchTeamData(user.id, user.email)
     }
   }, [user, teamId])
 
   const fetchTeamData = async (userId: string, userEmail: string) => {
+    if (!teamId) {
+      router.push('/teams')
+      return
+    }
+    
     setLoading(true)
     // 현재 팀 정보 가져오기
     const { data: teamData, error: teamError } = await supabase
@@ -183,8 +188,8 @@ export default function TeamDetailPage() {
       setNewMemberEmail('')
       setShowAddModal(false)
       
-      if (user) {
-        await fetchTeamData(user.id, user.email!)
+      if (user && user.email) {
+        await fetchTeamData(user.id, user.email)
       }
     } catch (error) {
       console.error('Error adding member:', error)
@@ -205,8 +210,8 @@ export default function TeamDetailPage() {
 
       alert('メンバーを削除しました')
       
-      if (user) {
-        await fetchTeamData(user.id, user.email!)
+      if (user && user.email) {
+        await fetchTeamData(user.id, user.email)
       }
     } catch (error) {
       console.error('Error removing member:', error)
@@ -214,6 +219,13 @@ export default function TeamDetailPage() {
     }
   }
 
+
+  // teamIdがundefinedの場合はリダイレクト
+  useEffect(() => {
+    if (!teamId) {
+      router.push('/teams')
+    }
+  }, [teamId, router])
 
   if (loading) {
     return (
@@ -223,12 +235,16 @@ export default function TeamDetailPage() {
     )
   }
 
+  if (!teamId) {
+    return null
+  }
+
   // Sidebarのchildrenを設定
   useEffect(() => {
     if (team) {
       setMobileHeaderTitle(team.name || 'チーム詳細')
     }
-    if (user && allTeams.length >= 0) {
+    if (user && allTeams) {
       setSidebarChildren(
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
