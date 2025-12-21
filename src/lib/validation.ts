@@ -86,10 +86,11 @@ export const deleteEventSchema = z.object({
 )
 
 /**
- * トークン検証のスキーマ
+ * トークン検証のスキーマ（短いトークン対応）
+ * UUID形式から短い英数字文字列に変更
  */
 export const tokenSchema = z.object({
-  token: z.string().uuid('Invalid token format'),
+  token: z.string().min(8).max(20).regex(/^[A-Za-z0-9]+$/, 'Invalid token format'),
 })
 
 /**

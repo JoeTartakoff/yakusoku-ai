@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { generateBookingUrl, generateFixedLink } from '@/utils/url-generator'
+import { generateBookingUrl, generateFixedLink, generateOneTimeUrl } from '@/utils/url-generator'
 import Sidebar from '@/components/Sidebar'
 
 interface Folder {
@@ -245,15 +245,8 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
     const { token } = await response.json()
     console.log('✅ One-time token created:', token)
 
-    const guestInfo = (quickGuestInfo.name && quickGuestInfo.email) 
-      ? { name: quickGuestInfo.name, email: quickGuestInfo.email }
-      : undefined
-
-    const url = generateBookingUrl({
-      shareLink,
-      guestInfo,
-      token,
-    })
+    // ⭐ 新しい短いURL形式を使用（元URLを隠す）
+    const url = generateOneTimeUrl(token)
     
     navigator.clipboard.writeText(url)
     

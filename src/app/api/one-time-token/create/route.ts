@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { scheduleIdSchema, formatValidationError } from '@/lib/validation'
+import { generateShortToken } from '@/utils/token-generator'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +30,28 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    // トークン生成
-    const token = crypto.randomUUID()
+    // ⭐ 短いトークン生成（10文字の英数字）
+    let token: string
+    let attempts = 0
+    const maxAttempts = 10
+
+    // トークンの一意性を保証するため、重複チェックを行う
+    do {
+      token = generateShortToken()
+      attempts++
+
+      const { data: existing } = await supabase
+        .from('one_time_tokens')
+        .select('token')
+        .eq('token', token)
+        .single()
+
+      if (!existing) break
+
+      if (attempts >= maxAttempts) {
+        throw new Error('Failed to generate unique token')
+      }
+    } while (true)
 
     // DB에 저장
     const { data, error } = await supabase

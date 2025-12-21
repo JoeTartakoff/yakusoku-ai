@@ -149,3 +149,14 @@ export function generateFixedLink(
 
   return generateBookingUrl({ shareLink, guestInfo, baseUrl })
 }
+
+/**
+ * ワンタイムリンクURLを生成（短いトークンを使用）
+ * 
+ * パターン: /ot/{token}
+ * 元のURL（shareLink）を完全に隠す
+ */
+export function generateOneTimeUrl(token: string, baseUrl?: string): string {
+  const base = getBaseUrl(baseUrl)
+  return `${base}/ot/${token}`
+}
