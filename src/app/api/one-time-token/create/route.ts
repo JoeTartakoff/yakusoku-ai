@@ -37,23 +37,38 @@ export async function POST(request: NextRequest) {
     let attempts = 0
     const maxAttempts = 5
 
-    // DB에 저장
-    const { data, error } = await supabase
-      .from('one_time_tokens')
-      .insert({
-        token,
-        schedule_id: scheduleId,
-        is_used: false,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-      })
-      .select()
-      .single()
+    // 直接insertを試行（ユニーク制約エラーの場合のみリトライ）
+    while (attempts < maxAttempts) {
+      token = generateShortToken()
+      attempts++
 
-    if (error) {
-      throw error
+      const { data, error } = await supabase
+        .from('one_time_tokens')
+        .insert({
+          token,
+          schedule_id: scheduleId,
+          is_used: false,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        })
+        .select()
+        .single()
+
+      if (!error) {
+        return NextResponse.json({ token })
+      }
+
+      // ユニーク制約違反の場合のみリトライ（PostgreSQLエラーコード: 23505）
+      if (error.code !== '23505') {
+        throw error
+      }
+
+      // 最後の試行でも失敗した場合
+      if (attempts >= maxAttempts) {
+        throw new Error('Failed to generate unique token after multiple attempts')
+      }
     }
 
-    return NextResponse.json({ token })
+    throw new Error('Failed to generate token')
   } catch (error: unknown) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('Error in create token API:', error instanceof Error ? error.message : 'Unknown error')
