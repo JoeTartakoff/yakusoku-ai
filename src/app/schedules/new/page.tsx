@@ -126,6 +126,9 @@ export default function NewSchedulePage() {
     email: string
   }>>([])
 
+  // ⭐ サイドバー開閉状態
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
   // ⭐ 기간 설정 관련 상태
   const [hasDateRange, setHasDateRange] = useState<boolean>(true)
   const [quickPeriod, setQuickPeriod] = useState<number>(14)
