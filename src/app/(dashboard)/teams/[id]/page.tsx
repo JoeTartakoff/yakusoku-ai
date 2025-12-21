@@ -286,7 +286,7 @@ export default function TeamDetailPage() {
       console.error('teamId is undefined after user loaded, redirecting...')
       router.push('/teams')
     }
-  }, [user, teamId, router])
+  }, [user?.id, teamId, router])
 
   if (loading) {
     return (
