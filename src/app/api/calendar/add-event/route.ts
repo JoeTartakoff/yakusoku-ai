@@ -348,8 +348,22 @@ export async function POST(request: Request) {
     // Zodによる入力検証
     const validationResult = bookingSchema.safeParse(body)
     if (!validationResult.success) {
+      const errorMessage = formatValidationError(validationResult.error)
+      console.error('❌ Validation error in add-event API:', {
+        error: errorMessage,
+        receivedData: {
+          scheduleId: body.scheduleId ? 'present' : 'missing',
+          bookingDate: body.bookingDate,
+          startTime: body.startTime,
+          endTime: body.endTime,
+          guestName: body.guestName ? 'present' : 'missing',
+          guestEmail: body.guestEmail ? 'present' : 'missing',
+          guestUserId: body.guestUserId ? 'present' : 'missing',
+          comment: body.comment ? 'present' : 'missing',
+        },
+      })
       return NextResponse.json(
-        { success: false, error: formatValidationError(validationResult.error) },
+        { success: false, error: errorMessage },
         { status: 400 }
       )
     }
