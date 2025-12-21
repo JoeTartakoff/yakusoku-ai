@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -308,53 +308,58 @@ export default function TeamDetailPage() {
     return null
   }
 
+  // Sidebarのchildrenをメモ化
+  const sidebarContent = useMemo(() => {
+    if (!user || !allTeams || allTeams.length === 0) {
+      return null
+    }
+    
+    return (
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+            チーム一覧
+          </h2>
+        </div>
+        <div className="space-y-1">
+          {allTeams.map((t) => (
+            <Link
+              key={t.id}
+              href={`/teams/${t.id}`}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                t.id === teamId
+                  ? 'bg-blue-50 text-blue-700 font-medium'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span>👥</span>
+                <span className="truncate">{t.name}</span>
+              </div>
+              <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                {teamMembersCount[t.id] || 0}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    )
+  }, [user?.id, allTeams, teamId, teamMembersCount])
+
   // Sidebarのchildrenを設定
   useEffect(() => {
     if (team) {
       setMobileHeaderTitle(team.name || 'チーム詳細')
     }
-    if (user && allTeams) {
-      setSidebarChildren(
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-              チーム一覧
-            </h2>
-          </div>
-          <div className="space-y-1">
-            {allTeams.length === 0 ? (
-              <p className="text-xs text-gray-500 px-3 py-2">
-                チームがありません
-              </p>
-            ) : (
-              allTeams.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/teams/${t.id}`}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                    t.id === teamId
-                      ? 'bg-blue-50 text-blue-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span>👥</span>
-                    <span className="truncate">{t.name}</span>
-                  </div>
-                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
-                    {teamMembersCount[t.id] || 0}
-                  </span>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
-      )
+    if (sidebarContent) {
+      setSidebarChildren(sidebarContent)
+    } else {
+      setSidebarChildren(null)
     }
     // setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpenはContextから提供される関数で安定しているため、依存配列に含めない
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, team?.id, team?.name, allTeams, teamId, teamMembersCount])
+  }, [team?.id, team?.name, sidebarContent])
 
   if (!team) {
     return null
