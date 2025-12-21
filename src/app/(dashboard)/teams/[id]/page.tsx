@@ -288,27 +288,7 @@ export default function TeamDetailPage() {
     }
   }, [user?.id, teamId, router])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">読み込み中...</p>
-      </div>
-    )
-  }
-
-  if (!teamId) {
-    // teamIdがundefinedの場合、userが読み込まれるまで待つ
-    if (!user) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <p className="text-gray-600">読み込み中...</p>
-        </div>
-      )
-    }
-    return null
-  }
-
-  // Sidebarのchildrenをメモ化
+  // Sidebarのchildrenをメモ化（早期リターンの前にすべてのフックを呼び出す必要がある）
   const sidebarContent = useMemo(() => {
     if (!user || !allTeams || allTeams.length === 0) {
       return null
@@ -360,6 +340,26 @@ export default function TeamDetailPage() {
     // setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpenはContextから提供される関数で安定しているため、依存配列に含めない
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team?.id, team?.name, sidebarContent])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">読み込み中...</p>
+      </div>
+    )
+  }
+
+  if (!teamId) {
+    // teamIdがundefinedの場合、userが読み込まれるまで待つ
+    if (!user) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      )
+    }
+    return null
+  }
 
   if (!team) {
     return null
