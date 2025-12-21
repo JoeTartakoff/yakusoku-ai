@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { useParams } from 'next/navigation'
+import BookingPage from '@/app/book/[shareLink]/page'
 
 export default function OneTimeBookingPage() {
   const params = useParams()
-  const router = useRouter()
   const token = params.token as string
+  const [scheduleId, setScheduleId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
@@ -16,7 +16,7 @@ export default function OneTimeBookingPage() {
     if (initRef.current) return
     initRef.current = true
 
-    const verifyAndRedirect = async () => {
+    const verifyAndGetScheduleId = async () => {
       try {
         // トークンを検証
         const response = await fetch('/api/one-time-token/verify', {
@@ -33,26 +33,9 @@ export default function OneTimeBookingPage() {
           return
         }
 
-        // トークンが有効な場合、schedule_idからshare_linkを取得
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
-
-        const { data: scheduleData, error: scheduleError } = await supabase
-          .from('schedules')
-          .select('share_link')
-          .eq('id', result.scheduleId)
-          .single()
-
-        if (scheduleError || !scheduleData) {
-          setError('スケジュールが見つかりません')
-          setLoading(false)
-          return
-        }
-
-        // 通常の予約ページにリダイレクト（トークンをクエリパラメータとして付与）
-        router.push(`/book/${scheduleData.share_link}?token=${token}`)
+        // schedule_idを設定（リダイレクトしない）
+        setScheduleId(result.scheduleId)
+        setLoading(false)
       } catch (error) {
         console.error('Error verifying token:', error)
         setError('トークンの検証に失敗しました')
@@ -60,8 +43,8 @@ export default function OneTimeBookingPage() {
       }
     }
 
-    verifyAndRedirect()
-  }, [token, router])
+    verifyAndGetScheduleId()
+  }, [token])
 
   if (loading) {
     return (
@@ -82,7 +65,7 @@ export default function OneTimeBookingPage() {
           <h1 className="text-2xl font-bold text-gray-800 mb-4">リンクエラー</h1>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
-            onClick={() => router.push('/')}
+            onClick={() => window.location.href = '/'}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             ホームに戻る
@@ -90,6 +73,12 @@ export default function OneTimeBookingPage() {
         </div>
       </div>
     )
+  }
+
+  // schedule_idが取得できたら、予約ページコンポーネントを表示
+  // scheduleIdParamとoneTimeTokenParamをpropsとして渡す
+  if (scheduleId) {
+    return <BookingPage scheduleIdParam={scheduleId} oneTimeTokenParam={token} />
   }
 
   return null

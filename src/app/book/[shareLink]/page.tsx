@@ -264,9 +264,9 @@ const CalendarCell = memo(function CalendarCell({
   }
 })
 
-export default function BookingPage() {
+export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { scheduleIdParam?: string, oneTimeTokenParam?: string } = {}) {
   const params = useParams()
-  const shareLink = params.shareLink as string
+  const shareLink = params.shareLink as string | undefined
 
   const [loading, setLoading] = useState(true)
   const [schedule, setSchedule] = useState<Schedule | null>(null)
@@ -308,11 +308,22 @@ export default function BookingPage() {
     try {
       console.log('📋 Fetching schedule info...')
       
-      const { data: scheduleData, error: scheduleError } = await supabase
-        .from('schedules')
-        .select('*')
-        .eq('share_link', shareLink)
-        .single()
+      // scheduleIdParamが指定されている場合はそれを使用、なければshareLinkを使用
+      if (!scheduleIdParam && !shareLink) {
+        throw new Error('scheduleIdParamまたはshareLinkが必要です')
+      }
+      
+      const { data: scheduleData, error: scheduleError } = scheduleIdParam
+        ? await supabase
+            .from('schedules')
+            .select('*')
+            .eq('id', scheduleIdParam)
+            .single()
+        : await supabase
+            .from('schedules')
+            .select('*')
+            .eq('share_link', shareLink!)
+            .single()
 
       if (scheduleError) throw scheduleError
 
@@ -552,8 +563,8 @@ export default function BookingPage() {
 
       console.log('🎬 Initial load')
 
-      const urlParams = new URLSearchParams(window.location.search)
-      const token = urlParams.get('token')
+      // ワンタイムトークンがpropsで渡されている場合（/ot/[token]から）
+      const token = oneTimeTokenParam || new URLSearchParams(window.location.search).get('token')
 
       if (token) {
         console.log('🔍 Verifying one-time token:', token)
@@ -640,7 +651,7 @@ export default function BookingPage() {
     }
 
     initPage()
-  }, [shareLink])
+  }, [shareLink, scheduleIdParam, oneTimeTokenParam])
 
   useEffect(() => {
     if (!guestUser || guestLoginProcessedRef.current) return
