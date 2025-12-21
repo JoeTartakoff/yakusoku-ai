@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nanoid } from 'nanoid'
+import Sidebar from '@/components/Sidebar'
 
 interface Team {
   id: string
@@ -138,6 +139,9 @@ export default function EditSchedulePage() {
   const [dragStartY, setDragStartY] = useState(0)
   const [dragInitialTop, setDragInitialTop] = useState(0)
 
+  // ⭐ サイドバー開閉状態
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
   useEffect(() => {
     checkUser()
   }, [])
@@ -164,6 +168,11 @@ export default function EditSchedulePage() {
     setUser(user)
     await fetchTeams(user.id)
     await loadSchedule(user.id)
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
   }
 
   const fetchTeams = async (userId: string) => {
@@ -717,28 +726,19 @@ export default function EditSchedulePage() {
   const blockHeightPx = formData.timeSlotDuration ? (formData.timeSlotDuration / 60) * 96 : 96
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">
-                予約カレンダー編集
-              </h1>
-            </div>
-            <div className="flex items-center">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                戻る
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onOpen={() => setIsSidebarOpen(true)}
+        user={user}
+        activePath={`/schedules/${scheduleId}/edit`}
+        onLogout={handleLogout}
+        mobileHeaderTitle="予約カレンダー編集"
+      />
 
-      <main className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg p-6">
           {hasBookings && (
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
