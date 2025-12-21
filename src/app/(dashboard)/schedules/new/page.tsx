@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nanoid } from 'nanoid'
-import { useSidebar } from '../layout'
+import { useSidebar } from '../../layout'
 
 interface Team {
   id: string
