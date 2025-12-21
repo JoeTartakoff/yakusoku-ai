@@ -47,6 +47,9 @@ export default function TeamDetailPage() {
       return
     }
 
+    const userId = user.id
+    const userEmail = user.email
+
     const fetchTeamData = async () => {
       try {
         setLoading(true)
@@ -65,7 +68,7 @@ export default function TeamDetailPage() {
         }
 
         setTeam(teamData)
-        setIsOwner(teamData.owner_id === user.id)
+        setIsOwner(teamData.owner_id === userId)
 
         // 팀원 목록 가져오기
         const { data: membersData } = await supabase
@@ -80,18 +83,18 @@ export default function TeamDetailPage() {
         const { data: ownedTeams } = await supabase
           .from('teams')
           .select('*')
-          .eq('owner_id', user.id)
+          .eq('owner_id', userId)
           .order('created_at', { ascending: false })
 
         const { data: memberTeamsByUserId } = await supabase
           .from('team_members')
           .select('team_id')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
 
         const { data: memberTeamsByEmail } = await supabase
           .from('team_members')
           .select('team_id')
-          .eq('email', user.email)
+          .eq('email', userEmail)
 
         const allMemberTeams = [
           ...(memberTeamsByUserId || []),
@@ -149,7 +152,8 @@ export default function TeamDetailPage() {
     fetchTeamData().catch((error) => {
       console.error('Error in fetchTeamData:', error)
     })
-  }, [user, teamId, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.email, teamId])
 
   const addMember = async () => {
     if (!teamId) {
@@ -350,8 +354,9 @@ export default function TeamDetailPage() {
         </div>
       )
     }
+    // setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpenはContextから提供される関数で安定しているため、依存配列に含めない
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, team, allTeams, teamId, teamMembersCount])
+  }, [user?.id, team?.id, team?.name, allTeams, teamId, teamMembersCount])
 
   if (!team) {
     return null
