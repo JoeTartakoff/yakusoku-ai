@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createErrorResponse } from '@/utils/errors'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
@@ -35,11 +36,7 @@ export async function GET(
       guestName: data.guest_name,
       guestEmail: data.guest_email,
     })
-  } catch (error) {
-    console.log('❌ Error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch' },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    return createErrorResponse(error, 500)
   }
 }

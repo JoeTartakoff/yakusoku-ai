@@ -45,9 +45,8 @@ export async function GET(request: Request) {
       })
     }
 
-    // 첫 번째 토큰으로 테스트
+    // 最初のトークンでテスト（ユーザーIDはログに出力しない）
     const tokens = allTokens[0]
-    console.log('🔑 Testing with user:', tokens.user_id)
 
     // 간단한 Calendar API 테스트
     const testUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=5'
@@ -63,7 +62,6 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: response.ok,
       status: response.status,
-      tokenUserId: tokens.user_id,
       tokenExpiresAt: tokens.expires_at,
       tokenExpired: new Date(tokens.expires_at) < new Date(),
       eventsCount: data.items?.length || 0,
@@ -71,8 +69,8 @@ export async function GET(request: Request) {
       error: data.error,
       sampleEvent: data.items?.[0],
       allTokensCount: allTokens.length,
-      allUsers: allTokens.map(t => ({
-        user_id: t.user_id,
+      // ユーザーIDはレスポンスに含めない（機密情報）
+      allTokensInfo: allTokens.map(t => ({
         expires_at: t.expires_at,
         expired: new Date(t.expires_at) < new Date(),
       })),

@@ -98,7 +98,7 @@ async function getAvailableSlotsForUser(
     const timeMax = new Date(dateEnd + 'T23:59:59').toISOString()
     
     const events = await fetchCalendarEvents(accessToken, timeMin, timeMax)
-    console.log(`✅ Fetched ${events.length} events for user:`, userId)
+    // ユーザーIDをログに出力しない（機密情報）
 
     const availableSlots = calculateAvailableSlots(
       events,
@@ -111,14 +111,11 @@ async function getAvailableSlotsForUser(
       slotDuration
     )
 
-    console.log(`✅ Calculated ${availableSlots.length} available slots for user:`, userId)
+    // ユーザーIDをログに出力しない（機密情報）
     return availableSlots
   } catch (error) {
-    console.error('❌ Error in getAvailableSlotsForUser:', error)
-    if (error instanceof Error) {
-      console.error('Error name:', error.name)
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error in getAvailableSlotsForUser:', error instanceof Error ? error.message : 'Unknown error')
     }
     return null
   }
@@ -227,8 +224,8 @@ export async function POST(request: Request) {
 
     console.log('=== GET AVAILABLE SLOTS API START ===')
     console.log('📋 Schedule ID:', scheduleId)
-    console.log('👤 Guest User ID:', guestUserId)
-    console.log('📅 Date range override:', dateStart ? `${dateStart} to ${dateEnd}` : 'using schedule range')
+    // ゲストユーザーIDをログに出力しない（機密情報）
+    // 日付範囲のオーバーライド情報をログに出力
     console.log('🌐 Environment:', process.env.VERCEL_ENV || 'local')
 
     console.log('📊 Fetching schedule from database...')

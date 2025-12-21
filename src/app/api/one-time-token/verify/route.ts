@@ -37,33 +37,25 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error || !data) {
-      console.log('❌ Token not found:', token)
       return NextResponse.json(
         { valid: false, message: 'トークンが無効です' },
         { status: 404 }
       )
     }
 
-    // 이미 사용됨
     if (data.is_used) {
-      console.log('⚠️ Token already used:', token)
       return NextResponse.json(
         { valid: false, message: 'このリンクは既に使用されました' },
         { status: 403 }
       )
     }
 
-    // 만료됨
     if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      console.log('⚠️ Token expired:', token)
       return NextResponse.json(
         { valid: false, message: 'このリンクは期限切れです（7日間経過）' },
         { status: 403 }
       )
     }
-
-    // 유효함
-    console.log('✅ Token valid:', token)
     return NextResponse.json({
       valid: true,
       scheduleId: data.schedule_id
