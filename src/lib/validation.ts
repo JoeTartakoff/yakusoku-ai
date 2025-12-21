@@ -11,9 +11,21 @@ export const emailSchema = z.string().email('Invalid email format').max(255, 'Em
 export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)')
 
 /**
- * 時刻の検証スキーマ（HH:MM形式）
+ * 時刻の検証スキーマ（HH:MM形式またはHH:MM:SS形式）
+ * HH:MM:SS形式の場合はHH:MM形式に変換
  */
-export const timeSchema = z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)')
+export const timeSchema = z.string()
+  .refine(
+    (val) => /^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/.test(val),
+    { message: 'Invalid time format (HH:MM or HH:MM:SS)' }
+  )
+  .transform((val) => {
+    // HH:MM:SS形式の場合はHH:MM形式に変換
+    if (val.includes(':') && val.split(':').length === 3) {
+      return val.substring(0, 5) // "12:00:00" -> "12:00"
+    }
+    return val
+  })
 
 /**
  * ゲスト情報の検証スキーマ
