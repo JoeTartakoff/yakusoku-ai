@@ -1548,6 +1548,7 @@ export default function NewSchedulePage() {
             </div>
           </form>
         </div>
+        </div>
       </main>
     </div>
   )
