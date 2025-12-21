@@ -88,27 +88,32 @@ export default function TeamsPage() {
     console.log('👤 userId:', userId)
     console.log('📧 userEmail:', userEmail)
 
-    const { data: ownedTeams, error: ownedError } = await supabase
-      .from('teams')
-      .select('*')
-      .eq('owner_id', userId)
-      .order('created_at', { ascending: false })
+    // ⚡ APIコールの並列化: 独立したクエリをPromise.allで並列実行
+    const [
+      { data: ownedTeams, error: ownedError },
+      { data: memberTeamsByUserId, error: userIdError },
+      { data: memberTeamsByEmail, error: emailError }
+    ] = await Promise.all([
+      supabase
+        .from('teams')
+        .select('*')
+        .eq('owner_id', userId)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', userId),
+      supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('email', userEmail)
+    ])
 
     console.log('✅ 소유한 팀:', ownedTeams?.length || 0)
     if (ownedError) console.error('❌ 소유 팀 조회 에러:', ownedError)
 
-    const { data: memberTeamsByUserId, error: userIdError } = await supabase
-      .from('team_members')
-      .select('team_id')
-      .eq('user_id', userId)
-
     console.log('✅ user_id로 찾은 팀:', memberTeamsByUserId?.length || 0)
     if (userIdError) console.error('❌ user_id 조회 에러:', userIdError)
-
-    const { data: memberTeamsByEmail, error: emailError } = await supabase
-      .from('team_members')
-      .select('team_id')
-      .eq('email', userEmail)
 
     console.log('✅ email로 찾은 팀:', memberTeamsByEmail?.length || 0)
     if (emailError) console.error('❌ email 조회 에러:', emailError)
@@ -139,30 +144,54 @@ export default function TeamsPage() {
       console.log('✅ 최종 팀 수:', uniqueTeams.length)
       setTeams(uniqueTeams)
 
-      const counts: Record<string, number> = {}
-      for (const team of uniqueTeams) {
-        const { count } = await supabase
+      // ⚡ N+1問題を修正: 全チームのメンバー数を1回のクエリで取得
+      const teamIds = uniqueTeams.map(t => t.id)
+      if (teamIds.length > 0) {
+        const { data: allTeamMembers } = await supabase
           .from('team_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('team_id', team.id)
+          .select('team_id')
+          .in('team_id', teamIds)
         
-        counts[team.id] = count || 0
+        // クライアント側で集計
+        const counts: Record<string, number> = {}
+        teamIds.forEach(teamId => {
+          counts[teamId] = 0
+        })
+        if (allTeamMembers) {
+          allTeamMembers.forEach(member => {
+            counts[member.team_id] = (counts[member.team_id] || 0) + 1
+          })
+        }
+        setTeamMembersCount(counts)
+      } else {
+        setTeamMembersCount({})
       }
-      setTeamMembersCount(counts)
     } else {
       console.log('⚠️ 멤버 팀 없음, 소유 팀만 표시')
       setTeams(ownedTeams || [])
       
-      const counts: Record<string, number> = {}
-      for (const team of (ownedTeams || [])) {
-        const { count } = await supabase
+      // ⚡ N+1問題を修正: 全チームのメンバー数を1回のクエリで取得
+      const teamIds = (ownedTeams || []).map(t => t.id)
+      if (teamIds.length > 0) {
+        const { data: allTeamMembers } = await supabase
           .from('team_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('team_id', team.id)
+          .select('team_id')
+          .in('team_id', teamIds)
         
-        counts[team.id] = count || 0
+        // クライアント側で集計
+        const counts: Record<string, number> = {}
+        teamIds.forEach(teamId => {
+          counts[teamId] = 0
+        })
+        if (allTeamMembers) {
+          allTeamMembers.forEach(member => {
+            counts[member.team_id] = (counts[member.team_id] || 0) + 1
+          })
+        }
+        setTeamMembersCount(counts)
+      } else {
+        setTeamMembersCount({})
       }
-      setTeamMembersCount(counts)
     }
     setLoading(false)
   }
