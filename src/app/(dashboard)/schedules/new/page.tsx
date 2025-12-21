@@ -1,12 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nanoid } from 'nanoid'
-import Link from 'next/link'
-import Image from 'next/image'
-import Sidebar from '@/components/Sidebar'
+import { useSidebar } from '../layout'
 
 interface Team {
   id: string
@@ -79,9 +77,9 @@ function timeToPixelPosition(time: string): number {
 
 export default function NewSchedulePage() {
   const router = useRouter()
+  const { user, setMobileHeaderTitle } = useSidebar()
   const [loading, setLoading] = useState(false)
   const [loadingSlots, setLoadingSlots] = useState(false)
-  const [user, setUser] = useState<any>(null)
   
   const [formData, setFormData] = useState({
     title: '',
@@ -127,9 +125,6 @@ export default function NewSchedulePage() {
     email: string
   }>>([])
 
-  // ⭐ サイドバー開閉状態
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-
   // ⭐ 기간 설정 관련 상태
   const [hasDateRange, setHasDateRange] = useState<boolean>(true)
   const [quickPeriod, setQuickPeriod] = useState<number>(14)
@@ -146,8 +141,11 @@ export default function NewSchedulePage() {
   const [dragInitialTop, setDragInitialTop] = useState(0)
 
   useEffect(() => {
-    checkUser()
-  }, [])
+    setMobileHeaderTitle('新しい予約カレンダー作成')
+    if (user) {
+      fetchTeams(user.id)
+    }
+  }, [user, setMobileHeaderTitle])
 
   // ⭐ 초기 날짜 설정 (오늘 + 2주)
   useEffect(() => {
@@ -173,22 +171,6 @@ export default function NewSchedulePage() {
     }
   }, [formData.dateRangeStart, formData.dateRangeEnd, formData.timeSlotDuration, scheduleMode, user])
 
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    setUser(user)
-    await fetchTeams(user.id)
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
   const fetchTeams = async (userId: string) => {
     console.log('🔍 fetchTeams for schedules/new')
@@ -663,20 +645,7 @@ export default function NewSchedulePage() {
   const blockHeightPx = formData.timeSlotDuration ? (formData.timeSlotDuration / 60) * 96 : 96
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onOpen={() => setIsSidebarOpen(true)}
-        user={user}
-        activePath="/schedules/new"
-        onLogout={handleLogout}
-        mobileHeaderTitle="新しい予約カレンダー作成"
-      />
-
-      <main className="flex-1 overflow-y-auto">
-
-        <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -1471,8 +1440,6 @@ export default function NewSchedulePage() {
             </div>
           </form>
         </div>
-        </div>
-      </main>
     </div>
   )
 }
