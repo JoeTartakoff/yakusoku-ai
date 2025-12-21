@@ -139,11 +139,13 @@ export default function EditSchedulePage() {
   const [dragStartY, setDragStartY] = useState(0)
   const [dragInitialTop, setDragInitialTop] = useState(0)
 
-  // ⭐ サイドバー開閉状態
-
   useEffect(() => {
-    checkUser()
-  }, [])
+    setMobileHeaderTitle('予約カレンダー編集')
+    if (user) {
+      fetchTeams(user.id)
+      loadSchedule(user.id)
+    }
+  }, [user, setMobileHeaderTitle])
 
   // ⭐ 주간 날짜 업데이트
   useEffect(() => {
