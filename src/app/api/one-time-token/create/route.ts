@@ -30,28 +30,12 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    // ⭐ 短いトークン生成（10文字の英数字）
+    // ⭐ 短いトークン生成（10文字の英数字、約839兆通りの組み合わせ）
+    // 衝突の可能性が極めて低いため、重複チェックは行わず直接insertを試行
+    // 万が一ユニーク制約エラーが発生した場合のみリトライ
     let token: string
     let attempts = 0
-    const maxAttempts = 10
-
-    // トークンの一意性を保証するため、重複チェックを行う
-    do {
-      token = generateShortToken()
-      attempts++
-
-      const { data: existing } = await supabase
-        .from('one_time_tokens')
-        .select('token')
-        .eq('token', token)
-        .single()
-
-      if (!existing) break
-
-      if (attempts >= maxAttempts) {
-        throw new Error('Failed to generate unique token')
-      }
-    } while (true)
+    const maxAttempts = 5
 
     // DB에 저장
     const { data, error } = await supabase
