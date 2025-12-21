@@ -93,28 +93,31 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.provider_token && session?.provider_refresh_token) {
-        try {
-          const expiresAt = new Date(Date.now() + (session.expires_in || 3600) * 1000).toISOString()
-          
-          await supabase
-            .from('user_tokens')
-            .upsert({
-              user_id: user.id,
-              access_token: session.provider_token,
-              refresh_token: session.provider_refresh_token,
-              expires_at: expiresAt,
-              updated_at: new Date().toISOString(),
-            }, {
-              onConflict: 'user_id'
-            })
-        } catch (error) {
-          console.error('Failed to save tokens:', error)
+      const initializeUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.provider_token && session?.provider_refresh_token) {
+          try {
+            const expiresAt = new Date(Date.now() + (session.expires_in || 3600) * 1000).toISOString()
+            
+            await supabase
+              .from('user_tokens')
+              .upsert({
+                user_id: user.id,
+                access_token: session.provider_token,
+                refresh_token: session.provider_refresh_token,
+                expires_at: expiresAt,
+                updated_at: new Date().toISOString(),
+              }, {
+                onConflict: 'user_id'
+              })
+          } catch (error) {
+            console.error('Failed to save tokens:', error)
+          }
         }
-      }
 
-      fetchSchedules(user.id)
+        await fetchSchedules(user.id)
+      }
+      initializeUser()
     }
   }, [user])
 
