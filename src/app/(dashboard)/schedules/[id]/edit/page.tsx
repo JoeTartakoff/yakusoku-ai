@@ -156,7 +156,7 @@ export default function EditSchedulePage() {
     if (formData.dateRangeStart && formData.dateRangeEnd && scheduleMode === 'candidate' && user) {
       fetchHostAvailableSlots()
     }
-  }, [formData.dateRangeStart, formData.dateRangeEnd, formData.timeSlotDuration, scheduleMode, user])
+  }, [formData.dateRangeStart, formData.dateRangeEnd, formData.timeSlotDuration, scheduleMode, user, workingHoursSettings, availableWeekdays])
 
 
   const fetchTeams = async (userId: string) => {
@@ -317,6 +317,9 @@ export default function EditSchedulePage() {
           date_range_start: formData.dateRangeStart,
           date_range_end: formData.dateRangeEnd,
           time_slot_duration: formData.timeSlotDuration,
+          working_hours_start: workingHoursSettings.startTime,
+          working_hours_end: workingHoursSettings.endTime,
+          available_weekdays: availableWeekdays,
           is_one_time_link: true,
           is_used: true,
         })
@@ -377,6 +380,13 @@ export default function EditSchedulePage() {
       const workingEnd = timeToMinutes(workingHoursSettings.endTime)
       
       if (startMinutes < workingStart || endMinutes > workingEnd) {
+        return false
+      }
+      
+      // ⭐ 曜日チェック
+      const slotDate = new Date(date)
+      const dayOfWeek = slotDate.getDay() // 0=日曜日, 1=月曜日, ..., 6=土曜日
+      if (!availableWeekdays.includes(dayOfWeek)) {
         return false
       }
     }
