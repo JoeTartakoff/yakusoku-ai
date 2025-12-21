@@ -142,7 +142,8 @@ export default function TeamDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [teamId, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId])
 
   useEffect(() => {
     if (user && user.email && teamId) {
@@ -248,7 +249,8 @@ export default function TeamDetailPage() {
       console.error('teamId is undefined after user loaded, redirecting...')
       router.push('/teams')
     }
-  }, [user, teamId, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, teamId])
 
   if (loading) {
     return (
@@ -314,7 +316,8 @@ export default function TeamDetailPage() {
         </div>
       )
     }
-  }, [user, team, allTeams, teamId, teamMembersCount, setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpen])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, team, allTeams, teamId, teamMembersCount])
 
   if (!team) {
     return null
