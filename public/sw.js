@@ -95,10 +95,18 @@ self.addEventListener('fetch', (event) => {
               return response
             }
 
-            const responseToCache = response.clone()
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseToCache)
-            })
+            // chrome-extension://などのサポートされていないスキームを除外
+            const requestUrl = new URL(request.url)
+            const isCacheableScheme = requestUrl.protocol === 'http:' || requestUrl.protocol === 'https:'
+            
+            if (isCacheableScheme) {
+              const responseToCache = response.clone()
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseToCache).catch((err) => {
+                  console.warn('[SW] Failed to cache:', request.url, err)
+                })
+              })
+            }
 
             return response
           })
