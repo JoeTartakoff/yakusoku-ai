@@ -140,12 +140,43 @@ export async function sendHostBookingNotification(data: BookingEmailData) {
     `,
   }
 
+  // SendGrid APIキーの設定チェック
+  if (!process.env.SENDGRID_API_KEY) {
+    const errorMsg = 'SENDGRID_API_KEY is not set'
+    console.error('❌ Failed to send host notification email:', errorMsg)
+    return { success: false, error: new Error(errorMsg) }
+  }
+
+  if (!process.env.SENDGRID_FROM_EMAIL) {
+    const errorMsg = 'SENDGRID_FROM_EMAIL is not set'
+    console.error('❌ Failed to send host notification email:', errorMsg)
+    return { success: false, error: new Error(errorMsg) }
+  }
+
   try {
     await sgMail.send(msg)
-    console.log('✅ Host notification email sent to:', hostEmail)
+    console.log('✅ Host notification email sent successfully')
     return { success: true }
   } catch (error) {
-    console.error('❌ Failed to send host notification email:', error)
+    // 機密情報を除いてエラー詳細をログに出力
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorName = error instanceof Error ? error.name : 'Error'
+    // SendGrid APIのエラーレスポンスを安全に処理
+    let errorDetails = errorMessage
+    if (error && typeof error === 'object' && 'response' in error) {
+      const response = (error as any).response
+      if (response?.body) {
+        errorDetails = `SendGrid API error: ${JSON.stringify(response.body).substring(0, 200)}`
+      } else if (response?.statusCode) {
+        errorDetails = `SendGrid API error: Status ${response.statusCode}`
+      }
+    }
+    console.error('❌ Failed to send host notification email:', {
+      errorType: errorName,
+      errorMessage: errorDetails,
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      hasFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+    })
     return { success: false, error }
   }
 }
@@ -265,27 +296,77 @@ export async function sendGuestBookingConfirmation(data: BookingEmailData) {
     `,
   }
 
+  // SendGrid APIキーの設定チェック
+  if (!process.env.SENDGRID_API_KEY) {
+    const errorMsg = 'SENDGRID_API_KEY is not set'
+    console.error('❌ Failed to send guest confirmation email:', errorMsg)
+    return { success: false, error: new Error(errorMsg) }
+  }
+
+  if (!process.env.SENDGRID_FROM_EMAIL) {
+    const errorMsg = 'SENDGRID_FROM_EMAIL is not set'
+    console.error('❌ Failed to send guest confirmation email:', errorMsg)
+    return { success: false, error: new Error(errorMsg) }
+  }
+
   try {
     await sgMail.send(msg)
-    console.log('✅ Guest confirmation email sent to:', guestEmail)
+    console.log('✅ Guest confirmation email sent successfully')
     return { success: true }
   } catch (error) {
-    console.error('❌ Failed to send guest confirmation email:', error)
+    // 機密情報を除いてエラー詳細をログに出力
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorName = error instanceof Error ? error.name : 'Error'
+    // SendGrid APIのエラーレスポンスを安全に処理
+    let errorDetails = errorMessage
+    if (error && typeof error === 'object' && 'response' in error) {
+      const response = (error as any).response
+      if (response?.body) {
+        errorDetails = `SendGrid API error: ${JSON.stringify(response.body).substring(0, 200)}`
+      } else if (response?.statusCode) {
+        errorDetails = `SendGrid API error: Status ${response.statusCode}`
+      }
+    }
+    console.error('❌ Failed to send guest confirmation email:', {
+      errorType: errorName,
+      errorMessage: errorDetails,
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      hasFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+    })
     return { success: false, error }
   }
 }
 
 export async function sendBookingNotifications(data: BookingEmailData) {
-  console.log('\n📧 === SENDING BOOKING NOTIFICATIONS ===')
+  console.log('📧 === SENDING BOOKING NOTIFICATIONS ===')
   
   const [hostResult, guestResult] = await Promise.all([
     sendHostBookingNotification(data),
     sendGuestBookingConfirmation(data),
   ])
 
-  console.log('📧 Host email:', hostResult.success ? '✅ Sent' : '❌ Failed')
-  console.log('📧 Guest email:', guestResult.success ? '✅ Sent' : '❌ Failed')
-  console.log('📧 === NOTIFICATIONS COMPLETED ===\n')
+  const hostStatus = hostResult.success ? '✅ Sent' : '❌ Failed'
+  const guestStatus = guestResult.success ? '✅ Sent' : '❌ Failed'
+  console.log('📧 Host email:', hostStatus)
+  console.log('📧 Guest email:', guestStatus)
+  
+  if (!hostResult.success || !guestResult.success) {
+    // エラー詳細をログに出力（機密情報を除く）
+    if (!hostResult.success) {
+      const hostError = hostResult.error instanceof Error 
+        ? hostResult.error.message 
+        : 'Unknown error'
+      console.error('📧 Host email error details:', hostError)
+    }
+    if (!guestResult.success) {
+      const guestError = guestResult.error instanceof Error 
+        ? guestResult.error.message 
+        : 'Unknown error'
+      console.error('📧 Guest email error details:', guestError)
+    }
+  }
+  
+  console.log('📧 === NOTIFICATIONS COMPLETED ===')
 
   return {
     host: hostResult,

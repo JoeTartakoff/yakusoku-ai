@@ -615,14 +615,36 @@ export async function POST(request: Request) {
         comment: comment || null,
       })
 
-      if (!emailResult.allSuccess && process.env.NODE_ENV !== 'production') {
-        console.warn('Some emails failed to send, but booking completed')
+      if (!emailResult.allSuccess) {
+        // 本番環境でもエラーログを出力（機密情報を除く）
+        const hostError = emailResult.host.error instanceof Error 
+          ? emailResult.host.error.message 
+          : emailResult.host.error ? String(emailResult.host.error).substring(0, 200) : 'Unknown error'
+        const guestError = emailResult.guest.error instanceof Error 
+          ? emailResult.guest.error.message 
+          : emailResult.guest.error ? String(emailResult.guest.error).substring(0, 200) : 'Unknown error'
+        
+        console.error('⚠️ Some emails failed to send, but booking completed:', {
+          hostEmailFailed: !emailResult.host.success,
+          guestEmailFailed: !emailResult.guest.success,
+          hostError: emailResult.host.success ? null : hostError,
+          guestError: emailResult.guest.success ? null : guestError,
+        })
       }
     } catch (emailError) {
       // メール送信エラーはログに記録するが、予約は完了しているため続行
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Email sending failed, but booking completed')
-      }
+      // 本番環境でもエラーログを出力（機密情報を除く）
+      const errorMessage = emailError instanceof Error 
+        ? emailError.message 
+        : String(emailError).substring(0, 200)
+      const errorName = emailError instanceof Error ? emailError.name : 'Error'
+      
+      console.error('❌ Email sending failed, but booking completed:', {
+        errorType: errorName,
+        errorMessage: errorMessage,
+        hasSendGridApiKey: !!process.env.SENDGRID_API_KEY,
+        hasSendGridFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+      })
     }
 
     return NextResponse.json({ 
