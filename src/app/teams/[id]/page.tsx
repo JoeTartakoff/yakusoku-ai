@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import Sidebar from '@/components/Sidebar'
 
 interface Team {
   id: string
@@ -245,135 +246,53 @@ export default function TeamDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* ⭐ 모바일 오버레이 */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* ⭐ 왼쪽 사이드바 */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 bg-white shadow-lg flex flex-col
-        transform transition-transform duration-300 ease-in-out
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <Image
-            src="/logo.png"
-            alt="YAKUSOKU AI"
-            width={140}
-            height={40}
-            className="h-8 w-auto"
-            priority
-          />
-          {/* ⭐ 모바일 닫기 버튼 */}
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onOpen={() => setIsSidebarOpen(true)}
+        user={user}
+        activePath={`/teams/${teamId}`}
+        onLogout={handleLogout}
+        mobileHeaderTitle={team?.name || 'チーム詳細'}
+      >
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+              チーム一覧
+            </h2>
+          </div>
+          <div className="space-y-1">
+            {allTeams.length === 0 ? (
+              <p className="text-xs text-gray-500 px-3 py-2">
+                チームがありません
+              </p>
+            ) : (
+              allTeams.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/teams/${t.id}`}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                    t.id === teamId
+                      ? 'bg-blue-50 text-blue-700 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span>👥</span>
+                    <span className="truncate">{t.name}</span>
+                  </div>
+                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                    {teamMembersCount[t.id] || 0}
+                  </span>
+                </Link>
+              ))
+            )}
+          </div>
         </div>
+      </Sidebar>
 
-        <nav className="flex-1 overflow-y-auto p-4">
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                Navigation
-              </h2>
-            </div>
-            <div className="space-y-1">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <span>📅</span>
-                <span>スケジュール</span>
-              </Link>
-              <Link
-                href="/teams"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <span>👥</span>
-                <span>チーム管理</span>
-              </Link>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                チーム一覧
-              </h2>
-            </div>
-            <div className="space-y-1">
-              {allTeams.length === 0 ? (
-                <p className="text-xs text-gray-500 px-3 py-2">
-                  チームがありません
-                </p>
-              ) : (
-                allTeams.map((t) => (
-                  <Link
-                    key={t.id}
-                    href={`/teams/${t.id}`}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                      t.id === teamId
-                        ? 'bg-blue-50 text-blue-700 font-medium'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span>👥</span>
-                      <span className="truncate">{t.name}</span>
-                    </div>
-                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
-                      {teamMembersCount[t.id] || 0}
-                    </span>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-700 truncate">{user?.email}</span>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            ログアウト
-          </button>
-        </div>
-      </aside>
-
-      {/* ⭐ 메인 컨텐츠 영역 */}
       <main className="flex-1 overflow-y-auto">
-        {/* ⭐ 모바일 헤더 (햄버거 버튼) */}
-        <div className="lg:hidden bg-white shadow-sm sticky top-0 z-30">
-          <div className="flex items-center justify-between px-4 py-3">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <h1 className="text-lg font-bold text-gray-900">{team?.name || 'チーム詳細'}</h1>
-            <div className="w-10"></div>
-          </div>
-        </div>
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="mb-6">

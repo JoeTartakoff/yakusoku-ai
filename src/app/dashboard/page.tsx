@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { generateBookingUrl, generateFixedLink } from '@/utils/url-generator'
+import Sidebar from '@/components/Sidebar'
 
 interface Folder {
   id: string
@@ -511,208 +512,123 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
         ))}
       </div>
 
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 bg-white shadow-lg flex flex-col
-        transform transition-transform duration-300 ease-in-out
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <Image
-            src="/logo.png"
-            alt="YAKUSOKU AI"
-            width={140}
-            height={40}
-            className="h-8 w-auto"
-            priority
-          />
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto p-4">
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                Navigation
-              </h2>
-            </div>
-            <div className="space-y-1">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <span>📅</span>
-                <span>スケジュール</span>
-              </Link>
-              <Link
-                href="/teams"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <span>👥</span>
-                <span>チーム管理</span>
-              </Link>
-            </div>
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onOpen={() => setIsSidebarOpen(true)}
+        user={user}
+        activePath="/dashboard"
+        onLogout={handleLogout}
+      >
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+              フォルダ
+            </h2>
+            <button
+              onClick={() => openFolderModal()}
+              className="text-blue-600 hover:text-blue-700 text-xl"
+              title="新規フォルダ作成"
+            >
+              +
+            </button>
           </div>
 
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                フォルダ
-              </h2>
-              <button
-                onClick={() => openFolderModal()}
-                className="text-blue-600 hover:text-blue-700 text-xl"
-                title="新規フォルダ作成"
-              >
-                +
-              </button>
-            </div>
+          <div className="space-y-1">
+            <button
+              onClick={() => {
+                setSelectedFolder(null)
+                setIsSidebarOpen(false)
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                selectedFolder === null
+                  ? 'bg-blue-50 text-blue-700 font-medium'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span>📋</span>
+                <span>すべて</span>
+              </div>
+              <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                {schedules.length}
+              </span>
+            </button>
 
-            <div className="space-y-1">
-              <button
-                onClick={() => {
-                  setSelectedFolder(null)
-                  setIsSidebarOpen(false)
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                  selectedFolder === null
-                    ? 'bg-blue-50 text-blue-700 font-medium'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span>📋</span>
-                  <span>すべて</span>
-                </div>
-                <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
-                  {schedules.length}
-                </span>
-              </button>
+            <button
+              onClick={() => {
+                setSelectedFolder('uncategorized')
+                setIsSidebarOpen(false)
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                selectedFolder === 'uncategorized'
+                  ? 'bg-blue-50 text-blue-700 font-medium'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span>📂</span>
+                <span>未分類</span>
+              </div>
+              <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                {schedules.filter(s => !s.folder_id).length}
+              </span>
+            </button>
 
-              <button
-                onClick={() => {
-                  setSelectedFolder('uncategorized')
-                  setIsSidebarOpen(false)
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                  selectedFolder === 'uncategorized'
-                    ? 'bg-blue-50 text-blue-700 font-medium'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span>📂</span>
-                  <span>未分類</span>
-                </div>
-                <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
-                  {schedules.filter(s => !s.folder_id).length}
-                </span>
-              </button>
-
-              {folders.map((folder) => (
-                <div key={folder.id} className="group relative">
-                  <button
-                    onClick={() => {
-                      setSelectedFolder(folder.id)
-                      setIsSidebarOpen(false)
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                      selectedFolder === folder.id
-                        ? 'bg-blue-50 text-blue-700 font-medium'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span>📁</span>
-                      <span className="truncate">{folder.name}</span>
-                    </div>
-                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
-                      {schedules.filter(s => s.folder_id === folder.id).length}
-                    </span>
-                  </button>
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        openFolderModal(folder)
-                      }}
-                      className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                      title="編集"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteFolder(folder.id)
-                      }}
-                      className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                      title="削除"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+            {folders.map((folder) => (
+              <div key={folder.id} className="group relative">
+                <button
+                  onClick={() => {
+                    setSelectedFolder(folder.id)
+                    setIsSidebarOpen(false)
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                    selectedFolder === folder.id
+                      ? 'bg-blue-50 text-blue-700 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span>📁</span>
+                    <span className="truncate">{folder.name}</span>
                   </div>
+                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                    {schedules.filter(s => s.folder_id === folder.id).length}
+                  </span>
+                </button>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openFolderModal(folder)
+                    }}
+                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                    title="編集"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteFolder(folder.id)
+                    }}
+                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                    title="削除"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-700 truncate">{user?.email}</span>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            ログアウト
-          </button>
         </div>
-      </aside>
+      </Sidebar>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="lg:hidden bg-white shadow-sm sticky top-0 z-30">
-          <div className="flex items-center justify-between px-4 py-3">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <Image
-              src="/logo.png"
-              alt="YAKUSOKU AI"
-              width={120}
-              height={35}
-              className="h-7 w-auto"
-              priority
-            />
-            <div className="w-10"></div>
-          </div>
-        </div>
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="mb-6 bg-white shadow rounded-lg p-4">
