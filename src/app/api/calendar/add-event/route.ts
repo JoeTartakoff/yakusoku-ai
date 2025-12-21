@@ -600,6 +600,13 @@ export async function POST(request: Request) {
     }
 
     // メール送信
+    console.log('📧 Starting email notification process...')
+    console.log('📧 Environment check:', {
+      hasSendGridApiKey: !!process.env.SENDGRID_API_KEY,
+      hasSendGridFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+      hasSendGridFromName: !!process.env.SENDGRID_FROM_NAME,
+    })
+    
     try {
       const emailResult = await sendBookingNotifications({
         scheduleTitle: schedule.title,
@@ -613,6 +620,12 @@ export async function POST(request: Request) {
         meetLink,
         bookingMode: 'normal',
         comment: comment || null,
+      })
+
+      console.log('📧 Email notification result:', {
+        allSuccess: emailResult.allSuccess,
+        hostSuccess: emailResult.host.success,
+        guestSuccess: emailResult.guest.success,
       })
 
       if (!emailResult.allSuccess) {
@@ -630,6 +643,8 @@ export async function POST(request: Request) {
           hostError: emailResult.host.success ? null : hostError,
           guestError: emailResult.guest.success ? null : guestError,
         })
+      } else {
+        console.log('✅ All emails sent successfully')
       }
     } catch (emailError) {
       // メール送信エラーはログに記録するが、予約は完了しているため続行
@@ -644,6 +659,7 @@ export async function POST(request: Request) {
         errorMessage: errorMessage,
         hasSendGridApiKey: !!process.env.SENDGRID_API_KEY,
         hasSendGridFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+        hasSendGridFromName: !!process.env.SENDGRID_FROM_NAME,
       })
     }
 

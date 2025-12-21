@@ -1,8 +1,11 @@
 import sgMail from '@sendgrid/mail'
 
-// ビルド時にはエラーを発生させない
+// SendGrid APIキーの初期化
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+  console.log('✅ SendGrid API key initialized')
+} else {
+  console.error('❌ SENDGRID_API_KEY is not set in environment variables')
 }
 
 interface BookingEmailData {
@@ -154,6 +157,7 @@ export async function sendHostBookingNotification(data: BookingEmailData) {
   }
 
   try {
+    console.log('📧 Attempting to send host notification email...')
     await sgMail.send(msg)
     console.log('✅ Host notification email sent successfully')
     return { success: true }
@@ -163,19 +167,42 @@ export async function sendHostBookingNotification(data: BookingEmailData) {
     const errorName = error instanceof Error ? error.name : 'Error'
     // SendGrid APIのエラーレスポンスを安全に処理
     let errorDetails = errorMessage
+    let statusCode: number | null = null
+    let responseBody: any = null
+    
     if (error && typeof error === 'object' && 'response' in error) {
       const response = (error as any).response
+      statusCode = response?.statusCode || null
       if (response?.body) {
-        errorDetails = `SendGrid API error: ${JSON.stringify(response.body).substring(0, 200)}`
-      } else if (response?.statusCode) {
-        errorDetails = `SendGrid API error: Status ${response.statusCode}`
+        responseBody = response.body
+        // エラーレスポンスの詳細を取得（機密情報を除く）
+        if (typeof responseBody === 'object') {
+          const safeBody: any = {}
+          if (responseBody.errors) {
+            safeBody.errors = responseBody.errors.map((err: any) => ({
+              message: err.message,
+              field: err.field,
+            }))
+          }
+          if (responseBody.message) {
+            safeBody.message = responseBody.message
+          }
+          errorDetails = `SendGrid API error: ${JSON.stringify(safeBody)}`
+        } else {
+          errorDetails = `SendGrid API error: ${String(responseBody).substring(0, 200)}`
+        }
+      } else if (statusCode) {
+        errorDetails = `SendGrid API error: Status ${statusCode}`
       }
     }
+    
     console.error('❌ Failed to send host notification email:', {
       errorType: errorName,
       errorMessage: errorDetails,
+      statusCode: statusCode,
       hasApiKey: !!process.env.SENDGRID_API_KEY,
       hasFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+      hasFromName: !!process.env.SENDGRID_FROM_NAME,
     })
     return { success: false, error }
   }
@@ -310,6 +337,7 @@ export async function sendGuestBookingConfirmation(data: BookingEmailData) {
   }
 
   try {
+    console.log('📧 Attempting to send guest confirmation email...')
     await sgMail.send(msg)
     console.log('✅ Guest confirmation email sent successfully')
     return { success: true }
@@ -319,19 +347,42 @@ export async function sendGuestBookingConfirmation(data: BookingEmailData) {
     const errorName = error instanceof Error ? error.name : 'Error'
     // SendGrid APIのエラーレスポンスを安全に処理
     let errorDetails = errorMessage
+    let statusCode: number | null = null
+    let responseBody: any = null
+    
     if (error && typeof error === 'object' && 'response' in error) {
       const response = (error as any).response
+      statusCode = response?.statusCode || null
       if (response?.body) {
-        errorDetails = `SendGrid API error: ${JSON.stringify(response.body).substring(0, 200)}`
-      } else if (response?.statusCode) {
-        errorDetails = `SendGrid API error: Status ${response.statusCode}`
+        responseBody = response.body
+        // エラーレスポンスの詳細を取得（機密情報を除く）
+        if (typeof responseBody === 'object') {
+          const safeBody: any = {}
+          if (responseBody.errors) {
+            safeBody.errors = responseBody.errors.map((err: any) => ({
+              message: err.message,
+              field: err.field,
+            }))
+          }
+          if (responseBody.message) {
+            safeBody.message = responseBody.message
+          }
+          errorDetails = `SendGrid API error: ${JSON.stringify(safeBody)}`
+        } else {
+          errorDetails = `SendGrid API error: ${String(responseBody).substring(0, 200)}`
+        }
+      } else if (statusCode) {
+        errorDetails = `SendGrid API error: Status ${statusCode}`
       }
     }
+    
     console.error('❌ Failed to send guest confirmation email:', {
       errorType: errorName,
       errorMessage: errorDetails,
+      statusCode: statusCode,
       hasApiKey: !!process.env.SENDGRID_API_KEY,
       hasFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+      hasFromName: !!process.env.SENDGRID_FROM_NAME,
     })
     return { success: false, error }
   }
@@ -339,6 +390,13 @@ export async function sendGuestBookingConfirmation(data: BookingEmailData) {
 
 export async function sendBookingNotifications(data: BookingEmailData) {
   console.log('📧 === SENDING BOOKING NOTIFICATIONS ===')
+  console.log('📧 Email configuration check:', {
+    hasApiKey: !!process.env.SENDGRID_API_KEY,
+    hasFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+    hasFromName: !!process.env.SENDGRID_FROM_NAME,
+    fromEmail: process.env.SENDGRID_FROM_EMAIL || 'NOT SET',
+    fromName: process.env.SENDGRID_FROM_NAME || 'NOT SET',
+  })
   
   const [hostResult, guestResult] = await Promise.all([
     sendHostBookingNotification(data),
@@ -355,13 +413,13 @@ export async function sendBookingNotifications(data: BookingEmailData) {
     if (!hostResult.success) {
       const hostError = hostResult.error instanceof Error 
         ? hostResult.error.message 
-        : 'Unknown error'
+        : hostResult.error ? String(hostResult.error).substring(0, 200) : 'Unknown error'
       console.error('📧 Host email error details:', hostError)
     }
     if (!guestResult.success) {
       const guestError = guestResult.error instanceof Error 
         ? guestResult.error.message 
-        : 'Unknown error'
+        : guestResult.error ? String(guestResult.error).substring(0, 200) : 'Unknown error'
       console.error('📧 Guest email error details:', guestError)
     }
   }
