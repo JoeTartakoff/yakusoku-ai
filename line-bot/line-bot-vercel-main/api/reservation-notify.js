@@ -2,10 +2,16 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-    // CORS設定
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS設定（特定オリジンのみ許可）
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+    const origin = req.headers.origin;
+    
+    if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();

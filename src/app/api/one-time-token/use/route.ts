@@ -24,9 +24,7 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log('🔒 Marking token as used:', token)
-
-    // 토큰을 사용됨으로 표시
+    // トークンを使用済みとしてマーク
     const { error } = await supabase
       .from('one_time_tokens')
       .update({
@@ -36,17 +34,14 @@ export async function POST(request: NextRequest) {
       .eq('token', token)
 
     if (error) {
-      console.error('❌ Error marking token as used:', error)
       throw error
     }
 
-    console.log('✅ Token marked as used:', token)
-
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('❌ Error in use token API:', error)
+  } catch (error: unknown) {
+    console.error('Error in use token API:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
-      { error: error.message || 'Failed to mark token as used' },
+      { error: 'Failed to mark token as used' },
       { status: 500 }
     )
   }

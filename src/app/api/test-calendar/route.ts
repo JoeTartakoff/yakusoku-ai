@@ -1,12 +1,29 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkAdminAuth } from '@/lib/auth'
+import { createErrorResponse } from '@/utils/errors'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 )
 
-export async function GET() {
+export async function GET(request: Request) {
+  // 本番環境では無効化
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Not found' },
+      { status: 404 }
+    )
+  }
+
+  // 開発環境では管理者認証が必要
+  if (!checkAdminAuth(request)) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
   try {
     console.log('=== TEST CALENDAR API ===')
     
@@ -60,10 +77,7 @@ export async function GET() {
         expired: new Date(t.expires_at) < new Date(),
       })),
     })
-  } catch (error: any) {
-    return NextResponse.json({
-      error: error.message,
-      stack: error.stack,
-    })
+  } catch (error: unknown) {
+    return createErrorResponse(error, 500)
   }
 }

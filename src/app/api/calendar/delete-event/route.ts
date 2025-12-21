@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deleteEventSchema, formatValidationError } from '@/lib/validation'
+import { checkRateLimit, getRateLimitIdentifier } from '@/lib/rate-limit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
@@ -8,7 +10,6 @@ const supabaseAdmin = createClient(
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {
-    console.log('🔄 Refreshing access token...')
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -23,16 +24,19 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      console.error('🔄 Token refresh failed:', errorData)
+      if (process.env.NODE_ENV !== 'production') {
+        const errorData = await response.json()
+        console.error('Token refresh failed:', errorData)
+      }
       return null
     }
 
     const data = await response.json()
-    console.log('🔄 Token refreshed successfully')
     return data.access_token || null
   } catch (error) {
-    console.error('Error refreshing token:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error refreshing token:', error)
+    }
     return null
   }
 }
@@ -75,20 +79,42 @@ async function deleteCalendarEvent(
 }
 
 export async function POST(request: Request) {
-  console.log('\n\n🚨 ============================================')
-  console.log('🚨 DELETE EVENT API CALLED!')
-  console.log('🚨 ============================================\n')
+  // レート制限チェック（1分間に10リクエストまで）
+  const identifier = getRateLimitIdentifier(request)
+  const rateLimit = checkRateLimit(identifier, 10, 60000)
   
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Too many requests. Please try again later.',
+        retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+      },
+      { 
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil((rateLimit.resetTime - Date.now()) / 1000)),
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': String(rateLimit.remaining),
+          'X-RateLimit-Reset': String(rateLimit.resetTime),
+        }
+      }
+    )
+  }
+
   try {
     const body = await request.json()
-    console.log('📦 Request body:', JSON.stringify(body, null, 2))
 
-    const { bookingId, responseId, type } = body
+    // Zodによる入力検証
+    const validationResult = deleteEventSchema.safeParse(body)
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { success: false, error: formatValidationError(validationResult.error) },
+        { status: 400 }
+      )
+    }
 
-    console.log('\n=== DELETE EVENT API START ===')
-    console.log('📋 Type:', type)
-    console.log('📋 Booking ID:', bookingId)
-    console.log('📋 Response ID:', responseId)
+    const { bookingId, responseId, type } = validationResult.data
 
     let hostDeleted = false
     let guestDeleted = false
@@ -106,13 +132,11 @@ export async function POST(request: Request) {
         .single()
 
       if (bookingError || !booking) {
-        console.error('❌ Booking not found:', bookingError)
-        throw new Error('予約が見つかりません')
+        return NextResponse.json(
+          { success: false, error: 'Booking not found' },
+          { status: 404 }
+        )
       }
-
-      console.log('✅ Booking found:', booking.guest_name)
-      console.log('🎫 Host event ID:', booking.host_calendar_event_id)
-      console.log('🎫 Guest event ID:', booking.guest_calendar_event_id)
 
       const { data: scheduleData } = await supabaseAdmin
         .from('schedules')
@@ -217,16 +241,18 @@ export async function POST(request: Request) {
         .single()
 
       if (responseError || !response) {
-        console.error('❌ Response not found:', responseError)
-        throw new Error('応答が見つかりません')
+        return NextResponse.json(
+          { success: false, error: 'Response not found' },
+          { status: 404 }
+        )
       }
 
       if (!response.is_confirmed) {
-        throw new Error('この応答はまだ確定されていません')
+        return NextResponse.json(
+          { success: false, error: 'Response is not confirmed' },
+          { status: 400 }
+        )
       }
-
-      console.log('✅ Response found:', response.guest_name)
-      console.log('📅 Confirmed slot:', JSON.stringify(response.confirmed_slot, null, 2))
 
       const { data: scheduleData } = await supabaseAdmin
         .from('schedules')
@@ -240,7 +266,7 @@ export async function POST(request: Request) {
       if (response.confirmed_slot) {
         console.log('\n🔍 Searching for related booking...')
         console.log('   schedule_id:', response.schedule_id)
-        console.log('   guest_email:', response.guest_email)
+        // ゲスト情報をログに出力しない（機密情報）
         console.log('   booking_date:', response.confirmed_slot.date)
         console.log('   start_time:', response.confirmed_slot.startTime)
         console.log('   end_time:', response.confirmed_slot.endTime)
@@ -459,11 +485,6 @@ export async function POST(request: Request) {
       console.log('✅ Response status updated to unconfirmed')
     }
 
-    console.log('\n=== DELETE EVENT API COMPLETED ===')
-    console.log('📊 Summary:')
-    console.log('   Host event deleted:', hostDeleted)
-    console.log('   Guest event deleted:', guestDeleted)
-
     return NextResponse.json({ 
       success: true,
       hostDeleted,
@@ -472,20 +493,19 @@ export async function POST(request: Request) {
     })
     
   } catch (error: unknown) {
-    console.error('\n=== DELETE EVENT API ERROR ===')
-    console.error('Error type:', typeof error)
-    console.error('Error:', error)
-    
-    if (error instanceof Error) {
-      console.error('Message:', error.message)
-      console.error('Stack:', error.stack)
+    // 本番環境では詳細情報をログに記録（クライアントには返さない）
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Delete event API error:', error instanceof Error ? error.message : 'Unknown error')
+    } else {
+      console.error('Delete event API error:', error)
     }
     
     return NextResponse.json(
       { 
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        details: error instanceof Error ? error.stack : String(error)
+        error: process.env.NODE_ENV === 'production'
+          ? 'An error occurred while deleting the event'
+          : (error instanceof Error ? error.message : 'Unknown error')
       },
       { status: 500 }
     )

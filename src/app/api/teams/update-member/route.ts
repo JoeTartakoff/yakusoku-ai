@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAuth } from '@/lib/auth'
+import { createErrorResponse } from '@/utils/errors'
+import { updateMemberSchema, formatValidationError } from '@/lib/validation'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
@@ -8,9 +11,55 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
   try {
-    const { membershipId, userId } = await request.json()
+    // 認証チェック
+    const authResult = await requireAuth()
+    if (!authResult) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
 
-    console.log('🔄 API: Updating membership:', membershipId, '→', userId)
+    const body = await request.json()
+
+    // Zodによる入力検証
+    const validationResult = updateMemberSchema.safeParse(body)
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: formatValidationError(validationResult.error) },
+        { status: 400 }
+      )
+    }
+
+    const { membershipId, userId } = validationResult.data
+
+    // チームメンバーシップの所有者を確認
+    const { data: membership } = await supabaseAdmin
+      .from('team_members')
+      .select('team_id')
+      .eq('id', membershipId)
+      .single()
+
+    if (!membership) {
+      return NextResponse.json(
+        { error: 'Membership not found' },
+        { status: 404 }
+      )
+    }
+
+    // チームの所有者か確認
+    const { data: team } = await supabaseAdmin
+      .from('teams')
+      .select('user_id')
+      .eq('id', membership.team_id)
+      .single()
+
+    if (!team || team.user_id !== authResult.user.id) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
 
     const { data, error } = await supabaseAdmin
       .from('team_members')

@@ -7,18 +7,8 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 )
 
-console.log('=== ENVIRONMENT INFO ===')
-console.log('NODE_ENV:', process.env.NODE_ENV)
-console.log('VERCEL:', process.env.VERCEL)
-console.log('VERCEL_ENV:', process.env.VERCEL_ENV)
-console.log('Has GOOGLE_CLIENT_SECRET:', !!process.env.GOOGLE_CLIENT_SECRET)
-console.log('Has NEXT_PUBLIC_GOOGLE_CLIENT_ID:', !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
-console.log('========================')
-
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {
-    console.log('🔄 Refreshing access token...')
-    
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -35,16 +25,19 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
     console.log('🔄 Refresh response status:', response.status)
 
     if (!response.ok) {
-      const errorData = await response.json()
-      console.error('🔄 Token refresh failed:', JSON.stringify(errorData, null, 2))
+      if (process.env.NODE_ENV !== 'production') {
+        const errorData = await response.json()
+        console.error('Token refresh failed:', errorData)
+      }
       return null
     }
 
     const data = await response.json()
-    console.log('🔄 Token refreshed successfully')
     return data.access_token || null
   } catch (error) {
-    console.error('🔄 Error refreshing token:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error refreshing token:', error)
+    }
     return null
   }
 }
@@ -59,10 +52,7 @@ async function getAvailableSlotsForUser(
   lunchStart: string | null = null,
   lunchEnd: string | null = null
 ) {
-  console.log('=== getAvailableSlotsForUser ===')
-  console.log('User ID:', userId)
-  console.log('Date range:', dateStart, 'to', dateEnd)
-  
+  // ユーザーIDをログに出力しない（機密情報）
   try {
     const { data: tokens, error: tokensError } = await supabaseAdmin
       .from('user_tokens')
@@ -71,31 +61,27 @@ async function getAvailableSlotsForUser(
       .maybeSingle()
 
     if (tokensError) {
-      console.error('❌ Tokens query error:', JSON.stringify(tokensError, null, 2))
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Tokens query error:', tokensError)
+      }
       return null
     }
 
     if (!tokens) {
-      console.error('❌ No tokens found for user:', userId)
       return null
     }
-
-    console.log('✅ Tokens found for user:', userId)
 
     let accessToken = tokens.access_token
     const expiresAt = new Date(tokens.expires_at)
     const now = new Date()
     
     if (expiresAt < now) {
-      console.log('🔄 Token expired, attempting refresh...')
       const newAccessToken = await refreshAccessToken(tokens.refresh_token)
       
       if (!newAccessToken) {
-        console.error('❌ Failed to refresh token')
         return null
       }
       
-      console.log('✅ Token refreshed successfully')
       accessToken = newAccessToken
 
       await supabaseAdmin
@@ -163,7 +149,7 @@ async function getAvailableSlotsForTeam(
       return null
     }
 
-    console.log(`✅ Found ${members.length} team members:`, members.map(m => m.user_id))
+    // チームメンバー情報をログに出力しない（機密情報）
 
     const allMemberSlots = await Promise.all(
       members.map(member => 
@@ -180,7 +166,7 @@ async function getAvailableSlotsForTeam(
       )
     )
 
-    console.log('✅ Fetched slots for all team members')
+    // チームメンバー情報をログに出力しない（機密情報）
 
     const validSlots = allMemberSlots.filter(slots => slots !== null)
 

@@ -13,8 +13,7 @@ export async function GET(
   try {
     const { token } = await params
 
-    console.log('=== GET GUEST PRESET ===')
-    console.log('Token:', token)
+    // トークンをログに出力しない（機密情報）
 
     const { data, error } = await supabaseAdmin
       .from('guest_presets')
@@ -29,7 +28,7 @@ export async function GET(
       )
     }
 
-    console.log('✅ Found:', data.guest_name)
+    // ゲスト情報をログに出力しない（機密情報）
 
     return NextResponse.json({
       success: true,

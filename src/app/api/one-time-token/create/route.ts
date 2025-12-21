@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { scheduleIdSchema, formatValidationError } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {
-    const { scheduleId } = await request.json()
+    const body = await request.json()
 
-    if (!scheduleId) {
+    // Zodによる入力検証
+    const validationResult = scheduleIdSchema.safeParse(body)
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'scheduleId is required' },
+        { error: formatValidationError(validationResult.error) },
         { status: 400 }
       )
     }
+
+    const { scheduleId } = validationResult.data
 
     // ⭐ Supabase Service Role Client 생성
     const supabase = createClient(
@@ -24,10 +29,8 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    // 토큰 생성
+    // トークン生成
     const token = crypto.randomUUID()
-
-    console.log('🔑 Creating token for schedule:', scheduleId)
 
     // DB에 저장
     const { data, error } = await supabase
@@ -42,17 +45,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('❌ Error creating token:', error)
       throw error
     }
 
-    console.log('✅ One-time token created:', token)
-
     return NextResponse.json({ token })
-  } catch (error: any) {
-    console.error('❌ Error in create token API:', error)
+  } catch (error: unknown) {
+    console.error('Error in create token API:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
-      { error: error.message || 'Failed to create token' },
+      { error: 'Failed to create token' },
       { status: 500 }
     )
   }

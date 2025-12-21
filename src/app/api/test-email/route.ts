@@ -1,9 +1,26 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import sgMail from '@sendgrid/mail'
+import { checkAdminAuth } from '@/lib/auth'
+import { createErrorResponse } from '@/utils/errors'
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
 
-export async function GET() {
+export async function GET(request: Request) {
+  // 本番環境では無効化
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Not found' },
+      { status: 404 }
+    )
+  }
+
+  // 開発環境では管理者認証が必要
+  if (!checkAdminAuth(request)) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
   try {
     console.log('📧 Testing SendGrid...')
     console.log('From:', process.env.SENDGRID_FROM_EMAIL)
@@ -44,14 +61,7 @@ export async function GET() {
       to: 'gogumatruck@gmail.com'
     })
     
-  } catch (error: any) {
-    console.error('❌ SendGrid error:', error)
-    
-    return NextResponse.json({ 
-      success: false,
-      error: error.message,
-      details: error.response?.body,
-      code: error.code
-    }, { status: 500 })
+  } catch (error: unknown) {
+    return createErrorResponse(error, 500)
   }
 }

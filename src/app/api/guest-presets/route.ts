@@ -1,21 +1,49 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { nanoid } from 'nanoid'
+import { requireAuth, checkScheduleAccess } from '@/lib/auth'
+import { createErrorResponse } from '@/utils/errors'
+import { guestPresetsSchema, formatValidationError } from '@/lib/validation'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
 )
 
 export async function POST(request: Request) {
   try {
-    const { scheduleId, guests } = await request.json()
+    // 認証チェック
+    const authResult = await requireAuth()
+    if (!authResult) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
 
-    console.log('=== SAVE GUEST PRESETS ===')
-    console.log('Schedule ID:', scheduleId)
-    console.log('Guests:', guests)
+    const body = await request.json()
 
-    const guestPresets = guests.map((guest: any) => ({
+    // Zodによる入力検証
+    const validationResult = guestPresetsSchema.safeParse(body)
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: formatValidationError(validationResult.error) },
+        { status: 400 }
+      )
+    }
+
+    const { scheduleId, guests } = validationResult.data
+
+    // スケジュールへのアクセス権限を確認
+    const hasAccess = await checkScheduleAccess(scheduleId, authResult.user.id)
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
+
+    const guestPresets = guests.map((guest) => ({
       schedule_id: scheduleId,
       guest_name: guest.name,
       guest_email: guest.email,
@@ -29,17 +57,11 @@ export async function POST(request: Request) {
 
     if (error) throw error
 
-    console.log('✅ Saved guest presets:', data.length)
-
     return NextResponse.json({ 
       success: true,
       guests: data 
     })
-  } catch (error) {
-    console.log('❌ Error:', error)
-    return NextResponse.json(
-      { error: 'Failed to save guest presets' },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    return createErrorResponse(error, 500)
   }
 }
