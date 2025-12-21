@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nanoid } from 'nanoid'
-import Sidebar from '@/components/Sidebar'
+import { useSidebar } from '../../../layout'
 
 interface Team {
   id: string
@@ -79,11 +79,11 @@ export default function EditSchedulePage() {
   const router = useRouter()
   const params = useParams()
   const scheduleId = params.id as string
+  const { user, setMobileHeaderTitle } = useSidebar()
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [loadingSlots, setLoadingSlots] = useState(false)
-  const [user, setUser] = useState<any>(null)
   const [hasBookings, setHasBookings] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -140,7 +140,6 @@ export default function EditSchedulePage() {
   const [dragInitialTop, setDragInitialTop] = useState(0)
 
   // ⭐ サイドバー開閉状態
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     checkUser()
@@ -157,23 +156,6 @@ export default function EditSchedulePage() {
     }
   }, [formData.dateRangeStart, formData.dateRangeEnd, formData.timeSlotDuration, scheduleMode, user])
 
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    setUser(user)
-    await fetchTeams(user.id)
-    await loadSchedule(user.id)
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
   const fetchTeams = async (userId: string) => {
     const { data: ownedTeams } = await supabase
@@ -726,18 +708,7 @@ export default function EditSchedulePage() {
   const blockHeightPx = formData.timeSlotDuration ? (formData.timeSlotDuration / 60) * 96 : 96
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onOpen={() => setIsSidebarOpen(true)}
-        user={user}
-        activePath={`/schedules/${scheduleId}/edit`}
-        onLogout={handleLogout}
-        mobileHeaderTitle="予約カレンダー編集"
-      />
-
-      <main className="flex-1 overflow-y-auto">
+    <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg p-6">
           {hasBookings && (
@@ -1426,7 +1397,6 @@ export default function EditSchedulePage() {
           </form>
         </div>
         </div>
-      </main>
     </div>
   )
 }

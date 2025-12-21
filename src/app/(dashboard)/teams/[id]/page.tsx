@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
-import Sidebar from '@/components/Sidebar'
+import { useSidebar } from '../../layout'
 
 interface Team {
   id: string
@@ -28,8 +27,8 @@ export default function TeamDetailPage() {
   const router = useRouter()
   const params = useParams()
   const teamId = params.id as string
+  const { user, setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpen } = useSidebar()
 
-  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [team, setTeam] = useState<Team | null>(null)
   const [members, setMembers] = useState<TeamMember[]>([])
@@ -38,28 +37,15 @@ export default function TeamDetailPage() {
   const [newMemberEmail, setNewMemberEmail] = useState('')
   const [allTeams, setAllTeams] = useState<Team[]>([])
   const [teamMembersCount, setTeamMembersCount] = useState<Record<string, number>>({})
-  
-  // ⭐ 사이드바 열림/닫힘 상태
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
-    checkUser()
-  }, [])
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      router.push('/login')
-      return
+    if (user) {
+      fetchTeamData(user.id, user.email!)
     }
-    
-    setUser(user)
-    await fetchTeamData(user.id, user.email!)
-    setLoading(false)
-  }
+  }, [user, teamId])
 
   const fetchTeamData = async (userId: string, userEmail: string) => {
+    setLoading(true)
     // 현재 팀 정보 가져오기
     const { data: teamData, error: teamError } = await supabase
       .from('teams')
@@ -146,6 +132,7 @@ export default function TeamDetailPage() {
       }
       setTeamMembersCount(counts)
     }
+    setLoading(false)
   }
 
   const addMember = async () => {
@@ -227,10 +214,6 @@ export default function TeamDetailPage() {
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
   if (loading) {
     return (
@@ -240,21 +223,13 @@ export default function TeamDetailPage() {
     )
   }
 
-  if (!team) {
-    return null
-  }
-
-  return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onOpen={() => setIsSidebarOpen(true)}
-        user={user}
-        activePath={`/teams/${teamId}`}
-        onLogout={handleLogout}
-        mobileHeaderTitle={team?.name || 'チーム詳細'}
-      >
+  // Sidebarのchildrenを設定
+  useEffect(() => {
+    if (team) {
+      setMobileHeaderTitle(team.name || 'チーム詳細')
+    }
+    if (user && allTeams.length >= 0) {
+      setSidebarChildren(
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
@@ -290,9 +265,16 @@ export default function TeamDetailPage() {
             )}
           </div>
         </div>
-      </Sidebar>
+      )
+    }
+  }, [user, team, allTeams, teamId, teamMembersCount, setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpen])
 
-      <main className="flex-1 overflow-y-auto">
+  if (!team) {
+    return null
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="mb-6">
@@ -378,7 +360,6 @@ export default function TeamDetailPage() {
             )}
           </div>
         </div>
-      </main>
 
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -424,6 +405,5 @@ export default function TeamDetailPage() {
           </div>
         </div>
       )}
-    </div>
   )
 }

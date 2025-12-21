@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
-import Sidebar from '@/components/Sidebar'
+import { useSidebar } from '../layout'
 
 interface Team {
   id: string
@@ -27,35 +26,21 @@ interface TeamMember {
 
 export default function TeamsPage() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const { user, setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpen } = useSidebar()
   const [loading, setLoading] = useState(true)
   const [teams, setTeams] = useState<Team[]>([])
   const [teamMembersCount, setTeamMembersCount] = useState<Record<string, number>>({})
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [teamName, setTeamName] = useState('')
   const [teamDescription, setTeamDescription] = useState('')
-  
-  // ⭐ 사이드바 열림/닫힘 상태
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
-    checkUser()
-  }, [])
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      router.push('/login')
-      return
+    setMobileHeaderTitle('チーム管理')
+    if (user) {
+      updatePendingMemberships(user)
+      fetchTeams(user.id, user.email!)
     }
-    
-    setUser(user)
-
-    await updatePendingMemberships(user)
-    await fetchTeams(user.id, user.email!)
-    setLoading(false)
-  }
+  }, [user, setMobileHeaderTitle])
 
   const updatePendingMemberships = async (user: any) => {
     try {
@@ -98,6 +83,7 @@ export default function TeamsPage() {
   }
 
   const fetchTeams = async (userId: string, userEmail: string) => {
+    setLoading(true)
     console.log('🔍 fetchTeams 시작')
     console.log('👤 userId:', userId)
     console.log('📧 userEmail:', userEmail)
@@ -178,6 +164,7 @@ export default function TeamsPage() {
       }
       setTeamMembersCount(counts)
     }
+    setLoading(false)
   }
 
   const createTeam = async () => {
@@ -241,30 +228,11 @@ export default function TeamsPage() {
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">読み込み中...</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onOpen={() => setIsSidebarOpen(true)}
-        user={user}
-        activePath="/teams"
-        onLogout={handleLogout}
-        mobileHeaderTitle="チーム管理"
-      >
+  // Sidebarのchildrenを設定
+  useEffect(() => {
+    if (user) {
+      setSidebarChildren(
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
@@ -296,9 +264,20 @@ export default function TeamsPage() {
             )}
           </div>
         </div>
-      </Sidebar>
+      )
+    }
+  }, [user, teams, teamMembersCount, setSidebarChildren, setIsSidebarOpen])
 
-      <main className="flex-1 overflow-y-auto">
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">読み込み中...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -371,7 +350,6 @@ export default function TeamsPage() {
             </div>
           )}
         </div>
-      </main>
 
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -428,6 +406,5 @@ export default function TeamsPage() {
           </div>
         </div>
       )}
-    </div>
   )
 }

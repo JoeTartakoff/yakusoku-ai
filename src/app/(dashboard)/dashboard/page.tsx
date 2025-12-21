@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { generateBookingUrl, generateFixedLink, generateOneTimeUrl } from '@/utils/url-generator'
-import Sidebar from '@/components/Sidebar'
+import { useSidebar } from '../layout'
 
 interface Folder {
   id: string
@@ -61,7 +60,7 @@ interface CountInfo {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const { user, setSidebarChildren, setIsSidebarOpen } = useSidebar()
   const [loading, setLoading] = useState(true)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [countMap, setCountMap] = useState<Record<string, CountInfo>>({})
@@ -74,7 +73,6 @@ export default function DashboardPage() {
   const [showFolderModal, setShowFolderModal] = useState(false)
   const [folderName, setFolderName] = useState('')
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all')
 
@@ -94,46 +92,35 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    checkUser()
-  }, [])
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      router.push('/login')
-      return
-    }
-    
-    setUser(user)
-
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.provider_token && session?.provider_refresh_token) {
-      try {
-        const expiresAt = new Date(Date.now() + (session.expires_in || 3600) * 1000).toISOString()
-        
-        await supabase
-          .from('user_tokens')
-          .upsert({
-            user_id: user.id,
-            access_token: session.provider_token,
-            refresh_token: session.provider_refresh_token,
-            expires_at: expiresAt,
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id'
-          })
-      } catch (error) {
-        console.error('Failed to save tokens:', error)
+    if (user) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.provider_token && session?.provider_refresh_token) {
+        try {
+          const expiresAt = new Date(Date.now() + (session.expires_in || 3600) * 1000).toISOString()
+          
+          await supabase
+            .from('user_tokens')
+            .upsert({
+              user_id: user.id,
+              access_token: session.provider_token,
+              refresh_token: session.provider_refresh_token,
+              expires_at: expiresAt,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'user_id'
+            })
+        } catch (error) {
+          console.error('Failed to save tokens:', error)
+        }
       }
-    }
 
-    await fetchSchedules(user.id)
-    setLoading(false)
-  }
+      fetchSchedules(user.id)
+    }
+  }, [user])
 
 const fetchSchedules = async (userId: string) => {
   try {
+    setLoading(true)
     console.log('🔍 fetchSchedules 시작, userId:', userId)
     
     const { data: foldersData } = await supabase
@@ -157,6 +144,7 @@ const fetchSchedules = async (userId: string) => {
     if (personalError) {
       console.error('❌ Error fetching personal schedules:', personalError)
       setSchedules([])
+      setLoading(false)
       return
     }
 
@@ -218,16 +206,14 @@ const fetchSchedules = async (userId: string) => {
       setCountMap(newCountMap)
       console.log('✅ Count map updated:', newCountMap)
     }
+    setLoading(false)
   } catch (error) {
     console.error('Error in fetchSchedules:', error)
     setSchedules([])
+    setLoading(false)
   }
 }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
 const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
   try {
@@ -443,76 +429,10 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
     router.push(`/schedules/${scheduleId}/detail`)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">読み込み中...</p>
-      </div>
-    )
-  }
-
-  const folderFilteredSchedules = selectedFolder === 'uncategorized'
-    ? schedules.filter(s => !s.folder_id)
-    : selectedFolder
-    ? schedules.filter(s => s.folder_id === selectedFolder)
-    : schedules
-
-  const filteredSchedules = folderFilteredSchedules.filter(schedule => {
-    if (selectedFilter === 'all') return true
-    if (selectedFilter === 'normal') return !schedule.is_candidate_mode && !schedule.is_interview_mode
-    if (selectedFilter === 'candidate') return schedule.is_candidate_mode
-    if (selectedFilter === 'interview') return schedule.is_interview_mode
-    return true
-  })
-
-  const normalCount = folderFilteredSchedules.filter(s => !s.is_candidate_mode && !s.is_interview_mode).length
-  const candidateCount = folderFilteredSchedules.filter(s => s.is_candidate_mode).length
-  const interviewCount = folderFilteredSchedules.filter(s => s.is_interview_mode).length
-
-  const getToastBgColor = (type: Toast['type']) => {
-    switch (type) {
-      case 'blue': return 'bg-blue-500'
-      case 'yellow': return 'bg-yellow-500'
-      case 'purple': return 'bg-purple-500'
-      case 'orange': return 'bg-orange-500'
-      case 'green': return 'bg-green-500'
-      default: return 'bg-blue-500'
-    }
-  }
-
-  return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      <div className="fixed top-4 right-4 z-[9999] space-y-2">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`${getToastBgColor(toast.type)} text-white px-6 py-4 rounded-lg shadow-lg min-w-[300px] max-w-md animate-slide-down`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-medium whitespace-pre-line flex-1">
-                {toast.message}
-              </p>
-              <button
-                onClick={() => removeToast(toast.id)}
-                className="text-white hover:text-gray-200 transition-colors flex-shrink-0"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onOpen={() => setIsSidebarOpen(true)}
-        user={user}
-        activePath="/dashboard"
-        onLogout={handleLogout}
-      >
+  // Sidebarのchildrenを設定
+  useEffect(() => {
+    if (user && schedules.length >= 0) {
+      setSidebarChildren(
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
@@ -619,9 +539,73 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
             ))}
           </div>
         </div>
-      </Sidebar>
+      )
+    }
+  }, [user, schedules, folders, selectedFolder, setSidebarChildren, setIsSidebarOpen])
 
-      <main className="flex-1 overflow-y-auto">
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">読み込み中...</p>
+      </div>
+    )
+  }
+
+  const folderFilteredSchedules = selectedFolder === 'uncategorized'
+    ? schedules.filter(s => !s.folder_id)
+    : selectedFolder
+    ? schedules.filter(s => s.folder_id === selectedFolder)
+    : schedules
+
+  const filteredSchedules = folderFilteredSchedules.filter(schedule => {
+    if (selectedFilter === 'all') return true
+    if (selectedFilter === 'normal') return !schedule.is_candidate_mode && !schedule.is_interview_mode
+    if (selectedFilter === 'candidate') return schedule.is_candidate_mode
+    if (selectedFilter === 'interview') return schedule.is_interview_mode
+    return true
+  })
+
+  const normalCount = folderFilteredSchedules.filter(s => !s.is_candidate_mode && !s.is_interview_mode).length
+  const candidateCount = folderFilteredSchedules.filter(s => s.is_candidate_mode).length
+  const interviewCount = folderFilteredSchedules.filter(s => s.is_interview_mode).length
+
+  const getToastBgColor = (type: Toast['type']) => {
+    switch (type) {
+      case 'blue': return 'bg-blue-500'
+      case 'yellow': return 'bg-yellow-500'
+      case 'purple': return 'bg-purple-500'
+      case 'orange': return 'bg-orange-500'
+      case 'green': return 'bg-green-500'
+      default: return 'bg-blue-500'
+    }
+  }
+
+  return (
+    <>
+      <div className="fixed top-4 right-4 z-[9999] space-y-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`${getToastBgColor(toast.type)} text-white px-6 py-4 rounded-lg shadow-lg min-w-[300px] max-w-md animate-slide-down`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-medium whitespace-pre-line flex-1">
+                {toast.message}
+              </p>
+              <button
+                onClick={() => removeToast(toast.id)}
+                className="text-white hover:text-gray-200 transition-colors flex-shrink-0"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="mb-6 bg-white shadow rounded-lg p-4">
@@ -865,7 +849,7 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       {showFolderModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -922,6 +906,6 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
           animation: slide-down 0.3s ease-out;
         }
       `}</style>
-    </div>
+    </>
   )
 }
