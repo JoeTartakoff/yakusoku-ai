@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -258,44 +258,51 @@ export default function TeamsPage() {
   }
 
 
+  // ⚡ Sidebarのchildrenをメモ化（再レンダリングを削減）
+  const sidebarContent = useMemo(() => {
+    if (!user) {
+      return null
+    }
+    
+    return (
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+            チーム一覧
+          </h2>
+        </div>
+        <div className="space-y-1">
+          {teams.length === 0 ? (
+            <p className="text-xs text-gray-500 px-3 py-2">
+              チームがありません
+            </p>
+          ) : (
+            teams.map((team) => (
+              <Link
+                key={team.id}
+                href={`/teams/${team.id}`}
+                className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span>👥</span>
+                  <span className="truncate">{team.name}</span>
+                </div>
+                <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                  {teamMembersCount[team.id] || 0}
+                </span>
+              </Link>
+            ))
+          )}
+        </div>
+      </div>
+    )
+  }, [user, teams, teamMembersCount, setIsSidebarOpen])
+
   // Sidebarのchildrenを設定
   useEffect(() => {
-    if (user) {
-      setSidebarChildren(
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-              チーム一覧
-            </h2>
-          </div>
-          <div className="space-y-1">
-            {teams.length === 0 ? (
-              <p className="text-xs text-gray-500 px-3 py-2">
-                チームがありません
-              </p>
-            ) : (
-              teams.map((team) => (
-                <Link
-                  key={team.id}
-                  href={`/teams/${team.id}`}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span>👥</span>
-                    <span className="truncate">{team.name}</span>
-                  </div>
-                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
-                    {teamMembersCount[team.id] || 0}
-                  </span>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
-      )
-    }
-  }, [user, teams, teamMembersCount, setSidebarChildren, setIsSidebarOpen])
+    setSidebarChildren(sidebarContent)
+  }, [sidebarContent, setSidebarChildren])
 
   if (loading) {
     return (

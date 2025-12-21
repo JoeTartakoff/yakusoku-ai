@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
@@ -57,6 +57,16 @@ export default function DashboardLayout({
     router.push('/login')
   }
 
+  // ⚡ Context値をメモ化（不要な再レンダリングを削減）
+  // setState関数はReactによって安定化されているため、依存配列から除外
+  const contextValue = useMemo(() => ({
+    setSidebarChildren,
+    setMobileHeaderTitle,
+    setIsSidebarOpen,
+    isSidebarOpen,
+    user,
+  }), [isSidebarOpen, user])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -66,7 +76,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarContext.Provider value={{ setSidebarChildren, setMobileHeaderTitle, setIsSidebarOpen, isSidebarOpen, user }}>
+    <SidebarContext.Provider value={contextValue}>
       <div className="h-screen bg-gray-50 flex overflow-hidden">
         <Sidebar
           isOpen={isSidebarOpen}
