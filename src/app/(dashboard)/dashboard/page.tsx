@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { generateBookingUrl, generateFixedLink, generateOneTimeUrl } from '@/utils/url-generator'
+import { generateBookingUrl, generateFixedLink, generateOneTimeUrl, generateEmbedUrl } from '@/utils/url-generator'
 import { useSidebar } from '../layout'
 
 interface Folder {
@@ -75,6 +75,8 @@ export default function DashboardPage() {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all')
+  const [showEmbedModal, setShowEmbedModal] = useState(false)
+  const [embedUrl, setEmbedUrl] = useState<string>('')
 
   const showToast = (message: string, type: Toast['type']) => {
     const id = Math.random().toString(36).substring(7)
@@ -295,6 +297,12 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
     
     navigator.clipboard.writeText(url)
     showToast(message, toastType)
+  }
+
+  const copyEmbedUrl = (shareLink: string) => {
+    const url = generateEmbedUrl(shareLink)
+    setEmbedUrl(url)
+    setShowEmbedModal(true)
   }
 
   const deleteSchedule = async (id: string) => {
@@ -834,6 +842,17 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
                           >
                             {schedule.is_interview_mode ? '候補日受取' : schedule.is_candidate_mode ? '候補時間' : '通常予約'}
                           </button>
+                          {!schedule.is_candidate_mode && !schedule.is_interview_mode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                copyEmbedUrl(schedule.share_link)
+                              }}
+                              className="flex-1 sm:flex-initial px-3 py-2 border border-green-300 bg-green-50 rounded-md text-sm font-medium text-green-700 hover:bg-green-100 whitespace-nowrap"
+                            >
+                              HTML埋め込み
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -887,6 +906,54 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium"
               >
                 {editingFolder ? '保存' : '作成'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEmbedModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              HTML埋め込み用URL
+            </h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                埋め込み用URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={embedUrl}
+                  readOnly
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-sm"
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(embedUrl)
+                    showToast('URLをコピーしました！', 'green')
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium whitespace-nowrap"
+                >
+                  コピー
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                このURLをiframeのsrc属性に設定して、他のサイトに埋め込むことができます。
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowEmbedModal(false)
+                  setEmbedUrl('')
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                閉じる
               </button>
             </div>
           </div>

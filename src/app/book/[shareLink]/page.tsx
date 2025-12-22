@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
@@ -266,7 +266,11 @@ const CalendarCell = memo(function CalendarCell({
 
 export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { scheduleIdParam?: string, oneTimeTokenParam?: string } = {}) {
   const params = useParams()
+  const searchParams = useSearchParams()
   const shareLink = params.shareLink as string | undefined
+
+  // embedパラメータを検知
+  const isEmbed = searchParams.get('embed') === 'true'
 
   const [loading, setLoading] = useState(true)
   const [schedule, setSchedule] = useState<Schedule | null>(null)
@@ -1116,8 +1120,9 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* モダンなSaaS風ヘッダー */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+      {/* モダンなSaaS風ヘッダー（埋め込み時は非表示） */}
+      {!isEmbed && (
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* 左側: ロゴ */}
@@ -1212,9 +1217,10 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
           </div>
         </div>
       </header>
+      )}
 
       {/* メインコンテンツ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isEmbed ? 'py-2' : 'py-8'}`}>
 
 
 

@@ -160,3 +160,18 @@ export function generateOneTimeUrl(token: string, baseUrl?: string): string {
   const base = getBaseUrl(baseUrl)
   return `${base}/ot/${token}`
 }
+
+/**
+ * HTML埋め込み用URLを生成（通常予約のみ）
+ * 
+ * パターン: /book/{shareLink}?embed=true
+ * ゲスト情報なしのURLのみ生成します。
+ * 
+ * @param shareLink - スケジュールの共有リンク
+ * @param baseUrl - ベースURL（省略時は現在のオリジン）
+ * @returns HTML埋め込み用のURL
+ */
+export function generateEmbedUrl(shareLink: string, baseUrl?: string): string {
+  const base = getBaseUrl(baseUrl)
+  return `${base}/book/${shareLink}?embed=true`
+}
