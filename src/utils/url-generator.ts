@@ -175,3 +175,29 @@ export function generateEmbedUrl(shareLink: string, baseUrl?: string): string {
   const base = getBaseUrl(baseUrl)
   return `${base}/book/${shareLink}?embed=true`
 }
+
+/**
+ * HTML埋め込み用のiframeタグコードを生成
+ * 
+ * TimeRexスタイルのコメント付きでiframeタグのHTMLコードを生成します。
+ * 
+ * @param shareLink - スケジュールの共有リンク
+ * @param options - オプション（width, height, baseUrl）
+ * @returns iframeタグのHTMLコード
+ */
+export function generateEmbedHtml(
+  shareLink: string,
+  options?: {
+    width?: string
+    height?: string
+    baseUrl?: string
+  }
+): string {
+  const url = generateEmbedUrl(shareLink, options?.baseUrl)
+  const width = options?.width || '100%'
+  const height = options?.height || '900px'
+  
+  return `<!-- Begin YAKUSOKU AI Widget -->
+<iframe src="${url}" width="${width}" height="${height}" style="border: none;" allowfullscreen></iframe>
+<!-- End YAKUSOKU AI Widget -->`
+}

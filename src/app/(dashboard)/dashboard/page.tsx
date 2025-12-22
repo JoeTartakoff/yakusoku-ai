@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { generateBookingUrl, generateFixedLink, generateOneTimeUrl, generateEmbedUrl } from '@/utils/url-generator'
+import { generateBookingUrl, generateFixedLink, generateOneTimeUrl, generateEmbedUrl, generateEmbedHtml } from '@/utils/url-generator'
 import { useSidebar } from '../layout'
 
 interface Folder {
@@ -77,6 +77,7 @@ export default function DashboardPage() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all')
   const [showEmbedModal, setShowEmbedModal] = useState(false)
   const [embedUrl, setEmbedUrl] = useState<string>('')
+  const [embedHtml, setEmbedHtml] = useState<string>('')
 
   const showToast = (message: string, type: Toast['type']) => {
     const id = Math.random().toString(36).substring(7)
@@ -301,7 +302,9 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
 
   const copyEmbedUrl = (shareLink: string) => {
     const url = generateEmbedUrl(shareLink)
+    const html = generateEmbedHtml(shareLink)
     setEmbedUrl(url)
+    setEmbedHtml(html)
     setShowEmbedModal(true)
   }
 
@@ -916,7 +919,7 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
-              HTML埋め込み用URL
+              HTML埋め込みコード
             </h3>
             
             <div className="mb-4">
@@ -945,11 +948,38 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
               </p>
             </div>
 
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                HTMLコード（iframeタグ）
+              </label>
+              <div className="flex gap-2">
+                <textarea
+                  value={embedHtml}
+                  readOnly
+                  rows={4}
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-sm font-mono resize-none"
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(embedHtml)
+                    showToast('HTMLコードをコピーしました！', 'green')
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium whitespace-nowrap self-start"
+                >
+                  コピー
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                このHTMLコードをそのままサイトに貼り付けるだけで埋め込みできます。
+              </p>
+            </div>
+
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => {
                   setShowEmbedModal(false)
                   setEmbedUrl('')
+                  setEmbedHtml('')
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
