@@ -610,6 +610,11 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
           
           if (!scheduleData) return
           
+          // クエリパラメータからゲスト情報を読み取る（ログインユーザーがいない場合のみ適用）
+          const urlParams = new URLSearchParams(window.location.search)
+          const nameParam = urlParams.get('name')
+          const emailParam = urlParams.get('email')
+          
           if (user) {
             console.log('👤 User logged in:', user.email)
             setGuestUser(user as User)
@@ -641,6 +646,16 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
               console.error('⚠️ Failed to save tokens:', error)
             })
           } else {
+            // ログインユーザーがいない場合、クエリパラメータからゲスト情報を設定
+            if (nameParam && emailParam) {
+              console.log('👤 Guest info from URL:', nameParam, emailParam)
+              setGuestInfo({
+                name: decodeURIComponent(nameParam),
+                email: decodeURIComponent(emailParam),
+                comment: '',
+              })
+            }
+            
             console.log('👤 No user logged in')
             // ⭐ 段階的取得を使用
             fetchCalendarSlotsProgressive(scheduleData)

@@ -153,12 +153,25 @@ export function generateFixedLink(
 /**
  * ワンタイムリンクURLを生成（短いトークンを使用）
  * 
- * パターン: /ot/{token}
+ * パターン: 
+ * - ゲスト情報なし: /ot/{token}
+ * - ゲスト情報あり: /ot/{token}?name={encodedName}&email={encodedEmail}
  * 元のURL（shareLink）を完全に隠す
  */
-export function generateOneTimeUrl(token: string, baseUrl?: string): string {
-  const base = getBaseUrl(baseUrl)
-  return `${base}/ot/${token}`
+export function generateOneTimeUrl(
+  token: string,
+  options?: { guestInfo?: GuestInfo; baseUrl?: string }
+): string {
+  const base = getBaseUrl(options?.baseUrl)
+  let url = `${base}/ot/${token}`
+  
+  // ゲスト情報がある場合、クエリパラメータとして追加
+  if (options?.guestInfo?.name && options?.guestInfo?.email) {
+    const { encodedName, encodedEmail } = encodeGuestInfo(options.guestInfo)
+    url += `?name=${encodedName}&email=${encodedEmail}`
+  }
+  
+  return url
 }
 
 /**

@@ -238,7 +238,11 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
     console.log('✅ One-time token created:', token)
 
     // ⭐ 新しい短いURL形式を使用（元URLを隠す）
-    const url = generateOneTimeUrl(token)
+    // クイックゲスト情報がある場合はURLに含める
+    const guestInfo = (quickGuestInfo.name && quickGuestInfo.email) 
+      ? { name: quickGuestInfo.name, email: quickGuestInfo.email }
+      : undefined
+    const url = generateOneTimeUrl(token, { guestInfo })
     
     navigator.clipboard.writeText(url)
     
@@ -877,7 +881,7 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
       </div>
 
       {showFolderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               {editingFolder ? 'フォルダ名を編集' : '新しいフォルダを作成'}
@@ -916,7 +920,7 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
       )}
 
       {showEmbedModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               HTML埋め込みコード
