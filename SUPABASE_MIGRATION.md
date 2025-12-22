@@ -48,3 +48,5 @@ COMMENT ON COLUMN bookings.comment IS '予約時のゲストからのコメン�
 2. コメントフィールドに入力する
 3. 予約を確定する
 4. データベースの`bookings`テーブルで、`comment`カラムに値が保存されていることを確認
+
+
