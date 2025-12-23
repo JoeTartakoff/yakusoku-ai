@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
@@ -266,11 +266,17 @@ const CalendarCell = memo(function CalendarCell({
 
 export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { scheduleIdParam?: string, oneTimeTokenParam?: string } = {}) {
   const params = useParams()
-  const searchParams = useSearchParams()
   const shareLink = params.shareLink as string | undefined
 
-  // embedパラメータを検知
-  const isEmbed = searchParams.get('embed') === 'true'
+  // embedパラメータを検知（useSearchParamsの代わりにwindow.location.searchを使用）
+  const [isEmbed, setIsEmbed] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      setIsEmbed(urlParams.get('embed') === 'true')
+    }
+  }, [])
 
   const [loading, setLoading] = useState(true)
   const [schedule, setSchedule] = useState<Schedule | null>(null)
@@ -311,7 +317,7 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
 
   const fetchScheduleInfo = async () => {
     try {
-      console.log('📋 Fetching schedule info...')
+      console.log('📋 Fetching schedule info...', { scheduleIdParam, shareLink, isEmbed })
       
       // scheduleIdParamが指定されている場合はそれを使用、なければshareLinkを使用
       if (!scheduleIdParam && !shareLink) {
@@ -330,7 +336,15 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
             .eq('share_link', shareLink!)
             .single()
 
-      if (scheduleError) throw scheduleError
+      if (scheduleError) {
+        console.error('❌ Supabase error:', scheduleError)
+        throw scheduleError
+      }
+
+      if (!scheduleData) {
+        console.error('❌ Schedule data is null')
+        throw new Error('スケジュールデータが見つかりませんでした')
+      }
 
       console.log('✅ Schedule info loaded:', scheduleData.title)
       setSchedule(scheduleData)
@@ -343,6 +357,12 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
     } catch (error) {
       console.error('❌ Failed to load schedule:', error)
       const errorMessage = error instanceof Error ? error.message : 'スケジュールの読み込みに失敗しました'
+      console.error('❌ Error details:', {
+        message: errorMessage,
+        error: error,
+        shareLink,
+        scheduleIdParam
+      })
       setScheduleError(errorMessage)
       setLoading(false)
       return null
@@ -1092,7 +1112,7 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
     )
   }
 
-  if (scheduleError || !schedule) {
+  if (scheduleError || (!loading && !schedule)) {
     return (
       <div className={`${isEmbed ? 'min-h-[600px]' : 'min-h-screen'} flex items-center justify-center bg-gray-50`}>
         <div className="text-center max-w-md w-full mx-4">
@@ -1112,6 +1132,14 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
             <p className="text-sm text-gray-500">
               リンクが正しいか確認してください。
             </p>
+          )}
+          {process.env.NODE_ENV !== 'production' && scheduleError && (
+            <details className="mt-4 text-left">
+              <summary className="text-sm text-gray-500 cursor-pointer">詳細情報</summary>
+              <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
+                {scheduleError}
+              </pre>
+            </details>
           )}
         </div>
       </div>
