@@ -951,7 +951,7 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
     const prevStart = new Date(startDate)
     prevStart.setDate(startDate.getDate() - viewDays)
     
-    if (isDateInRange(prevStart, schedule.date_range_start, schedule.date_range_end)) {
+    if (schedule && isDateInRange(prevStart, schedule.date_range_start, schedule.date_range_end)) {
       setStartDate(prevStart)
     }
   }, [schedule, startDate, viewDays])
@@ -962,7 +962,7 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
     const nextStart = new Date(startDate)
     nextStart.setDate(startDate.getDate() + viewDays)
     
-    if (isDateInRange(nextStart, schedule.date_range_start, schedule.date_range_end)) {
+    if (schedule && isDateInRange(nextStart, schedule.date_range_start, schedule.date_range_end)) {
       setStartDate(nextStart)
     }
   }, [schedule, startDate, viewDays])
@@ -1027,7 +1027,7 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
     }
     try {
       const dates = getDayDates(startDate, viewDays).filter(date => 
-        isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
+        schedule && isDateInRange(date, schedule.date_range_start, schedule.date_range_end)
       )
       return dates
     } catch (error) {
@@ -1112,7 +1112,7 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
     )
   }
 
-  if (scheduleError || (!loading && !schedule)) {
+  if (scheduleError) {
     return (
       <div className={`${isEmbed ? 'min-h-[600px]' : 'min-h-screen'} flex items-center justify-center bg-gray-50`}>
         <div className="text-center max-w-md w-full mx-4">
@@ -1123,23 +1123,49 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {scheduleError ? 'エラーが発生しました' : 'スケジュールが見つかりません'}
+            エラーが発生しました
           </h2>
           <p className="text-gray-600 mb-4">
-            {scheduleError || '指定されたスケジュールが見つかりませんでした。'}
+            {scheduleError}
           </p>
           {!isEmbed && (
             <p className="text-sm text-gray-500">
               リンクが正しいか確認してください。
             </p>
           )}
-          {process.env.NODE_ENV !== 'production' && scheduleError && (
+          {process.env.NODE_ENV !== 'production' && (
             <details className="mt-4 text-left">
               <summary className="text-sm text-gray-500 cursor-pointer">詳細情報</summary>
               <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
                 {scheduleError}
               </pre>
             </details>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (!schedule) {
+    return (
+      <div className={`${isEmbed ? 'min-h-[600px]' : 'min-h-screen'} flex items-center justify-center bg-gray-50`}>
+        <div className="text-center max-w-md w-full mx-4">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+            <svg className="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            スケジュールが見つかりません
+          </h2>
+          <p className="text-gray-600 mb-4">
+            指定されたスケジュールが見つかりませんでした。
+          </p>
+          {!isEmbed && (
+            <p className="text-sm text-gray-500">
+              リンクが正しいか確認してください。
+            </p>
           )}
         </div>
       </div>
