@@ -299,6 +299,7 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
   const [oneTimeToken, setOneTimeToken] = useState<string | null>(null)
   const [tokenAlreadyUsed, setTokenAlreadyUsed] = useState(false)
   const [tokenError, setTokenError] = useState<string | null>(null)
+  const [scheduleError, setScheduleError] = useState<string | null>(null)
   const [startDate, setStartDate] = useState<Date>(new Date())
   const [viewDays, setViewDays] = useState<3 | 7>(3)
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -341,7 +342,8 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
       return scheduleData
     } catch (error) {
       console.error('❌ Failed to load schedule:', error)
-      alert('スケジュールの読み込みに失敗しました')
+      const errorMessage = error instanceof Error ? error.message : 'スケジュールの読み込みに失敗しました'
+      setScheduleError(errorMessage)
       setLoading(false)
       return null
     }
@@ -1090,13 +1092,27 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
     )
   }
 
-  if (!schedule) {
+  if (scheduleError || !schedule) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
+      <div className={`${isEmbed ? 'min-h-[600px]' : 'min-h-screen'} flex items-center justify-center bg-gray-50`}>
+        <div className="text-center max-w-md w-full mx-4">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+            <svg className="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            スケジュールが見つかりません
+            {scheduleError ? 'エラーが発生しました' : 'スケジュールが見つかりません'}
           </h2>
+          <p className="text-gray-600 mb-4">
+            {scheduleError || '指定されたスケジュールが見つかりませんでした。'}
+          </p>
+          {!isEmbed && (
+            <p className="text-sm text-gray-500">
+              リンクが正しいか確認してください。
+            </p>
+          )}
         </div>
       </div>
     )
