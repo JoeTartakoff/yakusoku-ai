@@ -6,10 +6,7 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
+          // X-Frame-Optionsはミドルウェアで制御（embedパラメータに応じて動的に設定）
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
