@@ -175,6 +175,32 @@ const fetchSchedules = async (userId: string) => {
     const allSchedules = [...(personalSchedules || []), ...teamSchedules]
     setSchedules(allSchedules)
 
+    // ⭐ 通常モードのスケジュールに対して未使用トークンを事前生成
+    // パフォーマンスを考慮して、並列処理で実行
+    if (allSchedules && allSchedules.length > 0) {
+      const normalSchedules = allSchedules.filter(
+        s => !s.is_candidate_mode && !s.is_interview_mode
+      )
+      
+      // バックグラウンドでトークンを事前生成（エラーは無視）
+      Promise.all(
+        normalSchedules.map(async (schedule) => {
+          try {
+            await fetch('/api/one-time-token/get-or-create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ scheduleId: schedule.id })
+            })
+          } catch (error) {
+            // エラーは無視（バックグラウンド処理のため）
+            console.log('Background token generation skipped for schedule:', schedule.id)
+          }
+        })
+      ).catch(() => {
+        // 全体のエラーも無視
+      })
+    }
+
     // ⭐ 확정/제안 건수 계산 (수정됨)
     if (allSchedules && allSchedules.length > 0) {
       const newCountMap: Record<string, CountInfo> = {}
@@ -223,7 +249,8 @@ const fetchSchedules = async (userId: string) => {
 
 const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
   try {
-    const response = await fetch('/api/one-time-token/create', {
+    // 既存のトークンを取得（なければ作成）、有効期限を自動更新
+    const response = await fetch('/api/one-time-token/get-or-create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ scheduleId })
@@ -231,11 +258,11 @@ const copyOneTimeLink = async (shareLink: string, scheduleId: string) => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.error || 'Token creation failed')
+      throw new Error(errorData.error || 'Token get or create failed')
     }
 
     const { token } = await response.json()
-    console.log('✅ One-time token created:', token)
+    console.log('✅ One-time token retrieved/created:', token)
 
     // ⭐ 新しい短いURL形式を使用（元URLを隠す）
     // クイックゲスト情報がある場合はURLに含める

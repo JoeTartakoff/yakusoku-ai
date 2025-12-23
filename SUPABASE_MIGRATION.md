@@ -50,3 +50,4 @@ COMMENT ON COLUMN bookings.comment IS '予約時のゲストからのコメン�
 4. データベースの`bookings`テーブルで、`comment`カラムに値が保存されていることを確認
 
 
+
