@@ -176,29 +176,34 @@ const fetchSchedules = async (userId: string) => {
     setSchedules(allSchedules)
 
     // ⭐ 通常モードのスケジュールに対して未使用トークンを事前生成
-    // パフォーマンスを考慮して、並列処理で実行
+    // 画面表示に影響を与えないよう、完全にバックグラウンドで実行
     if (allSchedules && allSchedules.length > 0) {
       const normalSchedules = allSchedules.filter(
         s => !s.is_candidate_mode && !s.is_interview_mode
       )
       
-      // バックグラウンドでトークンを事前生成（エラーは無視）
-      Promise.all(
-        normalSchedules.map(async (schedule) => {
-          try {
-            await fetch('/api/one-time-token/get-or-create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ scheduleId: schedule.id })
-            })
-          } catch (error) {
-            // エラーは無視（バックグラウンド処理のため）
-            console.log('Background token generation skipped for schedule:', schedule.id)
-          }
+      // 次のイベントループで実行し、画面表示をブロックしない
+      setTimeout(() => {
+        // バックグラウンドでトークンを事前生成（エラーは無視）
+        Promise.all(
+          normalSchedules.map(async (schedule) => {
+            try {
+              await fetch('/api/one-time-token/get-or-create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scheduleId: schedule.id })
+              })
+            } catch (error) {
+              // エラーは無視（バックグラウンド処理のため）
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('Background token generation skipped for schedule:', schedule.id)
+              }
+            }
+          })
+        ).catch(() => {
+          // 全体のエラーも無視（バックグラウンド処理のため）
         })
-      ).catch(() => {
-        // 全体のエラーも無視
-      })
+      }, 0)
     }
 
     // ⭐ 확정/제안 건수 계산 (수정됨)
