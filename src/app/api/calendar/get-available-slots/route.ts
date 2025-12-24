@@ -231,7 +231,7 @@ export async function POST(request: Request) {
     console.log('📊 Fetching schedule from database...')
     const { data: schedule, error: scheduleError } = await supabaseAdmin
       .from('schedules')
-      .select('id, user_id, team_id, date_range_start, date_range_end, time_slot_duration, is_interview_mode, interview_time_start, interview_time_end, interview_break_start, interview_break_end, working_hours_start, working_hours_end, available_weekdays')
+      .select('id, title, user_id, team_id, date_range_start, date_range_end, time_slot_duration, is_interview_mode, interview_time_start, interview_time_end, interview_break_start, interview_break_end, working_hours_start, working_hours_end, available_weekdays')
       .eq('id', scheduleId)
       .single()
 
