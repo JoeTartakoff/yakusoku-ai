@@ -57,8 +57,56 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // API 요청은 네트워크만 사용 (캐시 안 함)
+  // ⭐ API 요청 캐시 전략 (조건부 캐싱)
   if (url.pathname.startsWith('/api/')) {
+    // get-available-slots APIのみキャッシュ対応（5分間）
+    if (url.pathname === '/api/calendar/get-available-slots' && request.method === 'POST') {
+      event.respondWith(
+        caches.match(request).then(cachedResponse => {
+          if (cachedResponse) {
+            // キャッシュがあれば使用（5分以内）
+            const cacheDate = cachedResponse.headers.get('sw-cache-date')
+            if (cacheDate && Date.now() - parseInt(cacheDate) < 5 * 60 * 1000) {
+              return cachedResponse
+            }
+          }
+          // なければネットワークから取得
+          return fetch(request.clone()).then(response => {
+            // 成功したレスポンスをキャッシュ（POSTリクエストは複製が必要）
+            if (response.ok) {
+              const cacheClone = response.clone()
+              // キャッシュ日時をヘッダーに追加
+              const headers = new Headers(cacheClone.headers)
+              headers.set('sw-cache-date', Date.now().toString())
+              const cachedResponse = new Response(cacheClone.body, {
+                status: cacheClone.status,
+                statusText: cacheClone.statusText,
+                headers: headers
+              })
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(request, cachedResponse).catch(err => {
+                  console.warn('[SW] Failed to cache API response:', err)
+                })
+              })
+              return response
+            }
+            return response
+          }).catch(() => {
+            // ネットワークエラー時はキャッシュがあれば使用
+            if (cachedResponse) {
+              return cachedResponse
+            }
+            return new Response(
+              JSON.stringify({ error: 'Offline', useStaticSlots: true }),
+              { headers: { 'Content-Type': 'application/json' } }
+            )
+          })
+        })
+      )
+      return
+    }
+    
+    // その他のAPIはネットワークのみ（既存の動作）
     event.respondWith(
       fetch(request).catch(() => {
         return new Response(

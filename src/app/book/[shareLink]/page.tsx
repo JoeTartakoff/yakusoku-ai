@@ -327,12 +327,12 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
       const { data: scheduleData, error: scheduleError } = scheduleIdParam
         ? await supabase
             .from('schedules')
-            .select('*')
+            .select('id, title, description, date_range_start, date_range_end, time_slot_duration, user_id, is_one_time_link, is_used, used_at, is_interview_mode, interview_time_start, interview_time_end, interview_break_start, interview_break_end, working_hours_start, working_hours_end, available_weekdays, team_id')
             .eq('id', scheduleIdParam)
             .single()
         : await supabase
             .from('schedules')
-            .select('*')
+            .select('id, title, description, date_range_start, date_range_end, time_slot_duration, user_id, is_one_time_link, is_used, used_at, is_interview_mode, interview_time_start, interview_time_end, interview_break_start, interview_break_end, working_hours_start, working_hours_end, available_weekdays, team_id')
             .eq('share_link', shareLink!)
             .single()
 
@@ -502,7 +502,7 @@ export default function BookingPage({ scheduleIdParam, oneTimeTokenParam }: { sc
       
       const { data: slotsData, error: slotsError } = await supabase
         .from('availability_slots')
-        .select('*')
+        .select('id, schedule_id, date, start_time, end_time')
         .eq('schedule_id', scheduleData.id)
         .order('date', { ascending: true })
         .order('start_time', { ascending: true })

@@ -131,7 +131,7 @@ const fetchSchedules = async (userId: string) => {
     
     const { data: foldersData } = await supabase
       .from('folders')
-      .select('*')
+      .select('id, user_id, name, color, created_at, updated_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: true })
     
@@ -140,7 +140,7 @@ const fetchSchedules = async (userId: string) => {
     console.log('📅 개인 스케줄 조회 시작...')
     const { data: personalSchedules, error: personalError } = await supabase
       .from('schedules')
-      .select('*')
+      .select('id, title, description, share_link, date_range_start, date_range_end, time_slot_duration, created_at, is_one_time_link, is_used, used_at, is_candidate_mode, candidate_slots, is_interview_mode, interview_time_start, interview_time_end, working_hours_start, working_hours_end, available_weekdays, folder_id, team_id')
       .eq('user_id', userId)
       .eq('is_one_time_link', false)
       .order('created_at', { ascending: false })
@@ -164,7 +164,7 @@ const fetchSchedules = async (userId: string) => {
       const teamIds = myTeams.map(t => t.team_id)
       const { data: teamSchedulesData } = await supabase
         .from('schedules')
-        .select('*')
+        .select('id, title, description, share_link, date_range_start, date_range_end, time_slot_duration, created_at, is_one_time_link, is_used, used_at, is_candidate_mode, candidate_slots, is_interview_mode, interview_time_start, interview_time_end, working_hours_start, working_hours_end, available_weekdays, folder_id, team_id')
         .in('team_id', teamIds)
         .eq('is_one_time_link', false)
         .order('created_at', { ascending: false })
@@ -206,39 +206,51 @@ const fetchSchedules = async (userId: string) => {
       }, 0)
     }
 
-    // ⭐ 확정/제안 건수 계산 (수정됨)
+    // ⭐ 확정/제안 건수 계산 (最適化: 並列一括取得)
     if (allSchedules && allSchedules.length > 0) {
       const newCountMap: Record<string, CountInfo> = {}
       
-      for (const schedule of allSchedules) {
+      // スケジュールを分類
+      const candidateScheduleIds = allSchedules
+        .filter(s => s.is_candidate_mode || s.is_interview_mode)
+        .map(s => s.id)
+      const normalScheduleIds = allSchedules
+        .filter(s => !s.is_candidate_mode && !s.is_interview_mode)
+        .map(s => s.id)
+      
+      // ⭐ 並列一括取得（順次実行から並列実行に変更）
+      const [bookingsResult, responsesResult] = await Promise.all([
+        normalScheduleIds.length > 0
+          ? supabase
+              .from('bookings')
+              .select('schedule_id, id')
+              .in('schedule_id', normalScheduleIds)
+              .eq('status', 'confirmed')
+          : Promise.resolve({ data: [] as any[], error: null }),
+        candidateScheduleIds.length > 0
+          ? supabase
+              .from('guest_responses')
+              .select('schedule_id, id, is_confirmed')
+              .in('schedule_id', candidateScheduleIds)
+          : Promise.resolve({ data: [] as any[], error: null })
+      ])
+      
+      // クライアント側で集計（O(n)の計算量で高速）
+      allSchedules.forEach(schedule => {
         if (schedule.is_candidate_mode || schedule.is_interview_mode) {
-          // 후보모드: 확정된 응답 수 + 미확정 제안 수
-          const { data: allResponses } = await supabase
-            .from('guest_responses')
-            .select('id, is_confirmed')
-            .eq('schedule_id', schedule.id)
-          
-          const confirmedCount = allResponses?.filter(r => r.is_confirmed).length || 0
-          const unconfirmedCount = allResponses?.filter(r => !r.is_confirmed).length || 0
-
+          const responses = responsesResult.data?.filter(r => r.schedule_id === schedule.id) || []
           newCountMap[schedule.id] = {
-            confirmed: confirmedCount,
-            proposed: unconfirmedCount  // ⭐ 미확정만 카운트
+            confirmed: responses.filter(r => r.is_confirmed).length,
+            proposed: responses.filter(r => !r.is_confirmed).length
           }
         } else {
-          // 통상모드: 확정된 예약 수만
-          const { data: bookings } = await supabase
-            .from('bookings')
-            .select('id')
-            .eq('schedule_id', schedule.id)
-            .eq('status', 'confirmed')
-          
+          const bookings = bookingsResult.data?.filter(b => b.schedule_id === schedule.id) || []
           newCountMap[schedule.id] = {
-            confirmed: bookings?.length || 0,
+            confirmed: bookings.length,
             proposed: 0
           }
         }
-      }
+      })
       
       setCountMap(newCountMap)
       console.log('✅ Count map updated:', newCountMap)

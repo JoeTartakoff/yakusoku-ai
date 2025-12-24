@@ -6,6 +6,8 @@ const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: 'swap', // フォント読み込み中の表示改善（FOITを防ぐ）
+  preload: true, // 優先的に読み込む
 });
 
 // ⭐ PWA 메타데이터 추가
